@@ -1,11 +1,20 @@
-import AppBar from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import IconButton from '@mui/material/IconButton';
-import SettingsIcon from '@mui/icons-material/Settings';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  IconButton,
+  Tooltip,
+} from "@mui/material";
+import SettingsIcon from "@mui/icons-material/Settings";
+import DescriptionIcon from "@mui/icons-material/Description";
+import sword from "../../assets/icons/sword.svg";
+import store from "../../assets/icons/store.svg";
 
-const GameAppBar = () => {
-  console.log("Render AppBar");
+type AppBarProps = {
+  onSelectTab: (tabName: "adventure" | "shop" | "settings") => void;
+};
+
+const GameAppBar = ({ onSelectTab }: AppBarProps) => {
   return (
     <AppBar
       position="static"
@@ -19,18 +28,29 @@ const GameAppBar = () => {
     >
       <Toolbar>
         <Typography variant="h6" sx={{ flexGrow: 1 }}>
-          Punchii
+          Spell & Spell
         </Typography>
 
-        <IconButton color="inherit">
+        <Tooltip title="Adventure">
+          <IconButton color="inherit" onClick={() => onSelectTab("adventure")}>
+            <img src={sword} style={{ width: 34, height: 34 }} />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip title="Shop">
+          <IconButton color="inherit" onClick={() => onSelectTab("shop")}>
+            <img src={store} style={{ width: 34, height: 34 }} />
+          </IconButton>
+        </Tooltip>
+
+        <IconButton color="inherit" onClick={() => onSelectTab("settings")}>
           <SettingsIcon />
         </IconButton>
+
       </Toolbar>
     </AppBar>
   );
-}
+};
+
 
 export default GameAppBar;
- 
-    
-
