@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom"; //เปลี่ยน หน�
 import { memo } from "react";
 import { DialogComponent } from "../../../components/Dialog";
 import { Box , Button} from "@mui/material";
-import GameCanvas from "../../BattlePage/walk";
+import App from "../../BattlePage/App.tsx";
 
 const AdvantureFeature = () => {
     const navigate = useNavigate();

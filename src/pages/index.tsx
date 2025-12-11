@@ -1,5 +1,5 @@
 import { Routes, Route, useLocation } from "react-router-dom";
-import GameCanvas from "./BattlePage/walk";
+import GameApp from "./BattlePage/App";
 import HomePage from "./HomePage";
 import GameAppBar from "../components/AppBar";
 
@@ -15,7 +15,7 @@ export default function App() {
 
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/battle" element={<GameCanvas />} />
+        <Route path="/battle" element={<GameApp />} />
       </Routes>
     </>
   );
