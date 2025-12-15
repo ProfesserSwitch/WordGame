@@ -27,7 +27,7 @@ type Enemy = {
 
 // รายชื่อมอน
 const enemyList: Enemy[] = [
-  { name: "Rat", hp: 30, speed: 20.0, atk: 1, pos: 10 },
+  { name: "Rat", hp: 30, speed: 1.0, atk: 1, pos: 10 },
 ];
 
 // ======================
@@ -79,7 +79,7 @@ export const GameCanvas: React.FC = () => {
       // Random Trees
       // ======================
       const treeObjects: { x: number; y: number; scale: number }[] = [];
-      const treeCount = 1;
+      const treeCount = 1000;
       const baseTreeW = 90;
 
       for (let i = 0; i < treeCount; i++) {
@@ -121,7 +121,7 @@ export const GameCanvas: React.FC = () => {
       let walkFrame = 0;
       let walkFrameCounter = 0;
       let distance = 0;
-      let nextEncounter = 160;
+      let nextEncounter = 40;
 
       // ===== Battle Mode =====
       let state = GAME_RUN;
