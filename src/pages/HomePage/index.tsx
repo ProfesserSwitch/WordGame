@@ -1,22 +1,36 @@
 
 import { useState } from "react";
+import { DataFlowProvider } from "./context/DataFlowContext";
 import GameAppBar from "../../components/AppBar";
 import AdvantureFeature from "./feature/AdvantureFeature";
 import ShopSpellFeature from "./feature/ShopSpellFeature";
-const HomePage = () => {
-  const [activeTab, setActiveTab] = useState<null | "adventure" | "shop" | "settings">(null);
+import MonsterLibrary from "./feature/MonsterLibrary";
+import Quest from "./feature/Quest";
+
+const HomePageInner = () => {
+  const [activeTab, setActiveTab] = useState<null | "shop" |"quest"| "monster" | "adventure" | "settings">(null);
 
   return (
     <>
       <GameAppBar onSelectTab={setActiveTab} />
 
-      <h1>Scene</h1>
-
-      {activeTab === "adventure" && <AdvantureFeature />}
       {activeTab === "shop" && <ShopSpellFeature />}
+      {activeTab === "quest" && <Quest />}
+      {activeTab === "monster" && <MonsterLibrary />}
+      {activeTab === "adventure" && <AdvantureFeature />}
+      
       {/* {activeTab === "settings" && <SettingsFeature />}  */}
     </>
   );
+};
+
+const HomePage = () => {
+  return (
+    <DataFlowProvider>
+      <HomePageInner />
+    </DataFlowProvider>
+  );
+  
 };
 
 export default HomePage;
