@@ -1,14 +1,31 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
-export const WordSlots: React.FC = () => {
+type Props = {
+  onConsumeLetter?: (index: number) => void; // ✅ ให้ ActionPanel ลบตัวอักษรจาก inventory
+};
+
+export const WordSlots: React.FC<Props> = ({ onConsumeLetter }) => {
   const [slots, setSlots] = useState<(string | null)[]>([
     null, null, null, null, null, null, null, null,
   ]);
+
+  useEffect(() => {
+    const reset = () => {
+      setSlots([null, null, null, null, null, null, null, null]);
+      (window as any).__currentWord = "";
+    };
+
+    window.addEventListener("resetWordSlots", reset);
+    return () => window.removeEventListener("resetWordSlots", reset);
+  }, []);
 
   const drop = (index: number, letter: string) => {
     const updated = [...slots];
     updated[index] = letter;
     setSlots(updated);
+
+    const word = updated.filter(Boolean).join("");
+    (window as any).__currentWord = word;
   };
 
   return (
@@ -35,7 +52,16 @@ export const WordSlots: React.FC = () => {
           <div
             key={i}
             onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => drop(i, e.dataTransfer.getData("letter"))}
+            onDrop={(e) => {
+              const letter = e.dataTransfer.getData("letter");
+              const idxStr = e.dataTransfer.getData("letterIndex");
+              const invIndex = parseInt(idxStr, 10);
+
+              drop(i, letter);
+
+              // ✅ ลบตัวอักษรจากแถวล่างเมื่อวางสำเร็จ
+              if (!Number.isNaN(invIndex)) onConsumeLetter?.(invIndex);
+            }}
             className={`slot-box ${l ? "has-letter" : ""}`}
             style={{
               width: 50,

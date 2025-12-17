@@ -46,6 +46,8 @@ export const GameCanvas: React.FC = () => {
     ctx.imageSmoothingEnabled = false;
 
     let animationId = 0;
+    let onAttack: ((ev: Event) => void) | null = null;
+
 
     function loadImg(src: string): Promise<HTMLImageElement> {
       return new Promise((res, rej) => {
@@ -126,6 +128,29 @@ export const GameCanvas: React.FC = () => {
       // ===== Battle Mode =====
       let state = GAME_RUN;
       let enemy: Enemy | null = null;
+      // ======================
+      // Receive Attack Event from UI
+      // ======================
+      onAttack = (ev: Event) => {
+        if (state !== GAME_BATTLE || !enemy) return;
+
+        const ce = ev as CustomEvent;
+        const word = (ce.detail?.word as string) || "";
+        if (!word.trim()) return;
+
+        const damage = Math.max(1, word.length * 5);
+        enemy.hp = Math.max(0, enemy.hp - damage);
+
+        if (enemy.hp === 0) {
+          state = GAME_RUN;
+          distance = 0;
+          nextEncounter = 40;
+        }
+      };
+
+      window.addEventListener("attack", onAttack);
+
+
       let enemyAnimFrame = 0;
       let enemyAnimTimer = 0;
       let enemyMoveTimer = 0;
@@ -297,7 +322,10 @@ export const GameCanvas: React.FC = () => {
 
     start();
 
-    return () => cancelAnimationFrame(animationId);
+    return () => {
+      if (onAttack) window.removeEventListener("attack", onAttack);
+      cancelAnimationFrame(animationId);
+    };
   }, []);
 
   return (
@@ -307,10 +335,12 @@ export const GameCanvas: React.FC = () => {
       height={200}
       style={{
         width: "100%",
-        height: "100%",
+        height: "200px",   //  ตรงนี้
         backgroundColor: "rgba(179, 241, 255, 1)",
         imageRendering: "pixelated",
+        display: "block",
       }}
     />
+
   );
 };

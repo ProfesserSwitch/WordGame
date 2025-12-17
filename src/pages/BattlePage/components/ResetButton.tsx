@@ -12,7 +12,16 @@ export const ResetButton: React.FC = () => {
         cursor: "pointer",
         fontSize: 24,
       }}
-      onClick={() => console.log("RESET LETTERS")}
+      onClick={() => {
+              // รีช่องบน
+              window.dispatchEvent(new CustomEvent("resetWordSlots"));
+
+              //  รีตัวอักษรแถวล่างกลับมา
+              window.dispatchEvent(new CustomEvent("refillInventory"));
+
+              // เคลียร์คำปัจจุบัน
+              (window as any).__currentWord = "";
+            }}
     >
       ⟳
     </div>

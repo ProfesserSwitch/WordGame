@@ -1,12 +1,10 @@
 import React from "react";
 
 type LetterInventoryProps = {
-  letters?: string[];
+  letters: string[];
 };
 
-export const LetterInventory: React.FC<LetterInventoryProps> = ({
-  letters = ["A", "B", "C", "D", "N", "G", "U", "C", "D", "N", "G", "U"],
-}) => {
+export const LetterInventory: React.FC<LetterInventoryProps> = ({ letters }) => {
   return (
     <>
       <style>
@@ -32,7 +30,10 @@ export const LetterInventory: React.FC<LetterInventoryProps> = ({
           <div
             key={i}
             draggable
-            onDragStart={(e) => e.dataTransfer.setData("letter", l)}
+            onDragStart={(e) => {
+              e.dataTransfer.setData("letter", l);
+              e.dataTransfer.setData("letterIndex", String(i)); // ✅ ส่ง index ไปด้วย
+            }}
             className="letter-tile"
             style={{
               width: 40,
