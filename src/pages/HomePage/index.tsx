@@ -8,12 +8,13 @@ import MonsterLibrary from "./feature/MonsterLibrary";
 import Quest from "./feature/Quest";
 
 const HomePageInner = () => {
-  const [activeTab, setActiveTab] = useState<null | "shop" |"quest"| "monster" | "adventure" | "settings">(null);
+  const [activeTab, setActiveTab] = useState<null |"home"| "shop" |"quest"| "monster" | "adventure" | "settings">(null);
 
   return (
     <>
-      <GameAppBar onSelectTab={setActiveTab} />
+      {/* <GameAppBar onSelectTab={setActiveTab} /> */}
 
+     
       {activeTab === "shop" && <ShopSpellFeature />}
       {activeTab === "quest" && <Quest />}
       {activeTab === "monster" && <MonsterLibrary />}
