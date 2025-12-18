@@ -2,5 +2,11 @@ body {
   margin: 0 !important;
   padding: 0 !important;
   overflow: hidden !important;
-  /* background-color: #000 !important; */
+  background-color: #f7ebeb !important;
+  background-image: url('./assets/icons/background.svg') !important;
+  background-size: cover !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
+
+  font-family: "Fantasy" !important;
 }
