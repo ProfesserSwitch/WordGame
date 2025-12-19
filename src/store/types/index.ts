@@ -18,3 +18,12 @@ export interface StageType {
   description: string;
   
 }
+
+export interface ShopType {
+  shop_id: string;
+  price: number;
+  item_id: string;
+  name: string;
+  type: string;
+  description: string;
+}
