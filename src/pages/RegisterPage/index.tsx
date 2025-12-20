@@ -10,8 +10,7 @@ interface RegisterForm {
   confirmPassword: string;
 }
 const RegisterPage = () => {
-  const { registerPlayer, message, clearBackendMessage, loading } =
-    useRegisPlayer();
+  const { registerPlayer, message, clearBackendMessage } = useRegisPlayer();
   const navigate = useNavigate();
 
   const [showPassword, setShowPassword] = useState(false);
@@ -71,21 +70,21 @@ const RegisterPage = () => {
     const newErrors: typeof errors = {};
 
     if (!formRegister.username.trim()) {
-      newErrors.username = "กรุณากรอก username";
+      newErrors.username = "Please enter your username";
     }
 
     if (!formRegister.email.trim()) {
-      newErrors.email = "กรุณากรอก email";
+      newErrors.email = "Please enter your email";
     }
 
     if (!formRegister.password) {
-      newErrors.password = "กรุณากรอกรหัสผ่าน";
+      newErrors.password = "Please enter your password";
     } else if (formRegister.password.length < 6) {
       newErrors.password = "รหัสผ่านต้องอย่างน้อย 6 ตัว";
     }
 
     if (formRegister.password !== formRegister.confirmPassword) {
-      newErrors.confirmPassword = "รหัสผ่านไม่ตรงกัน";
+      newErrors.confirmPassword = "Passwords do not match";
     }
 
     setErrors(newErrors);
@@ -113,7 +112,7 @@ const RegisterPage = () => {
       formRegister.password
     );
 
-    clearForm();
+    // clearForm();
     // navigate("/");
   };
 
@@ -144,22 +143,13 @@ const RegisterPage = () => {
         <Typography
           sx={{
             fontSize: "48px",
-            fontWeight: "bold",
-            fontFamily: "'Concert One', sans-serif",
+            // fontWeight: "bold",
+            fontFamily: "Fantasy"
           }}
         >
           Register
         </Typography>
 
-        <FormTextField
-          label="Email"
-          name="email"
-          isPassword={false}
-          value={formRegister.email}
-          onChange={handleInputChange}
-          errorMessage={errors.email}
-          helperText={errors.email}
-        />
         <FormTextField
           label="Username"
           name="username"
@@ -168,6 +158,15 @@ const RegisterPage = () => {
           onChange={handleInputChange}
           errorMessage={errors.username}
           helperText={errors.username}
+        />
+        <FormTextField
+          label="Email"
+          name="email"
+          isPassword={false}
+          value={formRegister.email}
+          onChange={handleInputChange}
+          errorMessage={errors.email}
+          helperText={errors.email}
         />
         <FormTextField
           label="Password"
@@ -226,6 +225,7 @@ const RegisterPage = () => {
               fontFamily: "'Concert One'",
               fontSize: "16px",
               cursor: "pointer",
+              // ":hover":co
             }}
             onClick={() => navigate("/")}
           >

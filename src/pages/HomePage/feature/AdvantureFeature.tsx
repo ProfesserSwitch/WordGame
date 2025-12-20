@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom"; //เปลี่ยน หน�
 import { memo } from "react";
 import { HoverListItem } from "../components/HoverListItem";
 import { Box, Button, Typography, Grid } from "@mui/material";
-import { useStageAdv } from "../hook/useStageAdv";
+import { useData } from "../hook/useData";
 //อีหน้าแตด
 type DetailItemProps = {
   orderNo: number;
@@ -77,7 +77,7 @@ const ListSection = memo(({ stages }: ListSectionProps) => {
 });
 
 const AdvantureFeature = () => {
-  const { stages } = useStageAdv();
+  const { stages } = useData();
   const navigate = useNavigate();
   return (
     <Box

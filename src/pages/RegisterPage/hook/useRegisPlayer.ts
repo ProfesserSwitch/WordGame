@@ -4,12 +4,8 @@ import { registerUser , clearErrorRegisMessage } from "../../../store/reducers/a
 
 export const useRegisPlayer = () => {
     const dispatch = useAppDispatch();
-    const player = useAppSelector((state) => state.auth.playRegister);
     const message = useAppSelector((state) => state.auth.backendRegisMessage);
     const loading = useAppSelector((state) => state.auth.registerState);
-
-    //console.log("loading state:", loading);
-
 
 
   const registerPlayer = useCallback((email:string,username: string, password: string) => {
@@ -23,7 +19,7 @@ export const useRegisPlayer = () => {
 
 
     return {
-      player,
+
       message,
       loading,
 

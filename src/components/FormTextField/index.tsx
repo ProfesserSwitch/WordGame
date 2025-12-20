@@ -29,7 +29,7 @@ export const FormTextField = ({
   value,
   onChange,
   errorMessage,
-  helperText
+  helperText,
 }: FormTextFieldProps) => {
   return (
     <>
@@ -46,21 +46,40 @@ export const FormTextField = ({
 
           <TextField
             fullWidth
+            size="small"
             type={showPassword ? "text" : "password"}
             value={value}
             name={name}
             onChange={onChange}
             variant="outlined"
             sx={{
-              backgroundColor: "white",
-              borderRadius: "15px",
-              "& fieldset": { borderRadius: "15px" },
+              "& .MuiOutlinedInput-root": {
+                height: 45,
+                borderRadius: "10px",
+                backgroundColor: "rgba(255, 255, 255, 1)",
+                "& fieldset": {
+                  border: "3px solid #ffffff",
+                },
+                "&:hover fieldset": {
+                  borderColor: "#8c6565ff", // hover
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: "#8c6565ff", // ตอน focus
+                  borderWidth: 3,
+                },
+              },
             }}
+            // sx={{
+            //   backgroundColor: "white",
+            //   borderRadius: "15px",
+            //   "& fieldset": { borderRadius: "15px" },
+            // }}
+
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
                   <IconButton onClick={onClick}>
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                    {showPassword ? <Visibility /> : <VisibilityOff />}
                   </IconButton>
                 </InputAdornment>
               ),
@@ -82,16 +101,30 @@ export const FormTextField = ({
 
           <TextField
             fullWidth
+            size="small"
             value={value}
             name={name}
             onChange={onChange}
             variant="outlined"
             sx={{
-              backgroundColor: "white",
-              borderRadius: "15px",
-              "& fieldset": { borderRadius: "15px" },
+              "& .MuiOutlinedInput-root": {
+                height: 45,
+                maxHeight:45,
+                borderRadius: "10px",
+                backgroundColor: "rgba(255, 255, 255, 1)",
+                "& fieldset": {
+                  border: "3px solid #ffffff",
+                },
+                "&:hover fieldset": {
+                  borderColor: "#8c6565ff", // hover
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: "#8c6565ff", // ตอน focus
+                  borderWidth: 3,
+                },
+              },
             }}
-             error={!!errorMessage}
+            error={!!errorMessage}
             helperText={helperText}
           />
         </Box>
