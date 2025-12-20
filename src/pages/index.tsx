@@ -12,9 +12,9 @@ export default function App() {
       {/* {!hideAppBar && <GameAppBar />} */}
 
       <Routes>
-        {/* <Route path="/" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage/>}/> */}
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage/>}/>
+        <Route path="/homepage" element={<HomePage />} />
         <Route path="/battle" element={<GameCanvas />} />
       </Routes>
     </>
