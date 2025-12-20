@@ -50,6 +50,8 @@ export const loginUser = createAsyncThunk<
   }
 );
 
+//logout 
+// export const logoutUser = createAsyncThunk
 
 export interface AuthState {
   playRegister: UserRegister[];
@@ -60,6 +62,7 @@ export interface AuthState {
   playerLogin: UserLogin[];
   currentUserLogin: UserLogin | null;
   LoginState: boolean;
+  loginSuccess: boolean;
   backendLoginMessage: string | null;
 }
 
@@ -72,6 +75,7 @@ const initialState: AuthState = {
   playerLogin: [],
   currentUserLogin: null,
   LoginState: false,
+  loginSuccess: false,
   backendLoginMessage: null,
 
 };
@@ -109,14 +113,17 @@ const authSlice = createSlice({
     //* LOGIN */
     builder.addCase(loginUser.pending, (state) => {
       state.LoginState = true;
+      state.loginSuccess = false;
       state.backendLoginMessage = null;
     });
     builder.addCase(loginUser.fulfilled, (state, action) => {
       state.LoginState = false;
+      state.loginSuccess = true;
       state.currentUserLogin = action.payload;
     }); 
     builder.addCase(loginUser.rejected, (state, action) => {
       state.LoginState = false;
+      state.loginSuccess = false;
       state.backendLoginMessage = action.payload || "login backendLoginMessage";
     });
 
