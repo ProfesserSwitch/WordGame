@@ -2,13 +2,12 @@ import React, {
   createContext,
   useContext,
 } from "react";
-import { useStageAdv } from "../hook/useStageAdv";
-
+import { useData } from "../hook/useData";
 /* =====================
    Context type
 ===================== */
 type DataFlowContextType = {
-  stages: ReturnType<typeof useStageAdv>["stages"];
+  stages: ReturnType<typeof useData>["stages"];
 };
 
 /* =====================
@@ -31,7 +30,7 @@ type DataFlowProviderProps = {
 export const DataFlowProvider = ({
   children,
 }: DataFlowProviderProps) => {
-  const { stages } = useStageAdv();
+  const { stages } = useData();
 
   return (
     <DataFlowContext.Provider value={{ stages }}>
