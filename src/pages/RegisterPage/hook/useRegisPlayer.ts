@@ -5,7 +5,7 @@ import { registerUser , clearErrorRegisMessage } from "../../../store/reducers/a
 export const useRegisPlayer = () => {
     const dispatch = useAppDispatch();
     const message = useAppSelector((state) => state.auth.backendRegisMessage);
-    const loading = useAppSelector((state) => state.auth.registerState);
+    const loading = useAppSelector((state) => state.auth.registerLoading);
 
 
   const registerPlayer = useCallback((email:string,username: string, password: string) => {

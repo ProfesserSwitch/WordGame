@@ -3,7 +3,6 @@ import { FormTextField } from "../../components/FormTextField";
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLoginPlayer } from "./hook/useLoginPlayer";
-import { Loading } from "../../components/Loading/Loading";
 import { useLoadData } from "./hook/useLoadData";
 interface LoginForm {
   username: string;
@@ -13,11 +12,9 @@ interface LoginForm {
 type BootStep = "idle" | "auth" | "loadingData";
 
 const LoginPage = () => {
-  const { message, loading, loginPlayer, loadingSuccess } = useLoginPlayer();
-  const { fetchAllStage , fetchAllShop} = useLoadData();
+  const { message, loading, loginPlayer } = useLoginPlayer();
   const navigate = useNavigate();
 
-  const [bootStep, setBootStep] = useState<BootStep>("idle");
   const [showPassword, setShowPassword] = useState(false);
   const handleClickShowPassword = () => {
     setShowPassword(!showPassword);
@@ -92,42 +89,14 @@ const LoginPage = () => {
     e.preventDefault();
     if (!validate()) return;
 
-    try {
-      setBootStep("auth");
 
-      await loginPlayer(formLogin.username, formLogin.password); // 🔐 auth
-
-      setBootStep("loadingData"); 
-
-      // โหลดข้อมูลเกมทั้งหมด
-      await Promise.all([
-        fetchAllStage(),
-        fetchAllShop(),
-      ]);
+      await loginPlayer(formLogin.username, formLogin.password);
 
       goToHomePage();
-    } catch (err) {
-      setBootStep("idle"); 
-    }
   };
 
   //loding
-  if (bootStep !== "idle" && bootStep !== "auth") {
-    return (
-      <Box
-        sx={{
-          width: "100vw",
-          height: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#ffffff",
-        }}
-      >
-        <Loading />
-      </Box>
-    );
-  }
+
 
   return (
     <Box
