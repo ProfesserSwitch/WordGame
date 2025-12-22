@@ -1,10 +1,10 @@
 import { Box, Typography, Button } from "@mui/material";
 import { FormTextField } from "../../components/FormTextField";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLoginPlayer } from "./hook/useLoginPlayer";
-import { Loading } from "../../components/Loading/Loading";
-import { useLoadData } from "./hook/useLoadData";
+import { motion } from "framer-motion";
+import PaperFrame from "../../components/PaparFrame/PaperFrame";
 interface LoginForm {
   username: string;
   password: string;
@@ -12,12 +12,59 @@ interface LoginForm {
 
 type BootStep = "idle" | "auth" | "loadingData";
 
+const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+function FloatingLetters() {
+  const items = useMemo(() => {
+    return Array.from({ length: 60 }).map((_, i) => {
+      const letter = letters[Math.floor(Math.random() * letters.length)];
+      return {
+        id: i,
+        letter,
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        size: Math.random() * 10 + 8,
+        duration: Math.random() * 10 + 10,
+        delay: Math.random() * 5,
+        opacity: Math.random() * 0.4 + 0.2,
+      };
+    });
+  }, []);
+
+  return (
+    <Box sx={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+      {items.map((item) => (
+        <motion.div
+          key={item.id}
+          initial={{ y: "100vh", opacity: 0 }}
+          animate={{ y: "-10vh", opacity: item.opacity }}
+          transition={{
+            duration: item.duration,
+            repeat: Infinity,
+            delay: item.delay,
+            ease: "linear",
+          }}
+          style={{
+            position: "absolute",
+            left: `${item.x}vw`,
+            fontSize: item.size,
+            fontFamily: "'Press Start 2P'",
+            color: "#eaeaea",
+            textShadow: "0 0 6px rgba(180,160,255,0.6)",
+            pointerEvents: "none",
+          }}
+        >
+          {item.letter}
+        </motion.div>
+      ))}
+    </Box>
+  );
+}
+
 const LoginPage = () => {
-  const { message, loading, loginPlayer, loadingSuccess } = useLoginPlayer();
-  const { fetchAllStage , fetchAllShop} = useLoadData();
+  const { message, loading, loginPlayer } = useLoginPlayer();
   const navigate = useNavigate();
 
-  const [bootStep, setBootStep] = useState<BootStep>("idle");
   const [showPassword, setShowPassword] = useState(false);
   const handleClickShowPassword = () => {
     setShowPassword(!showPassword);
@@ -92,42 +139,12 @@ const LoginPage = () => {
     e.preventDefault();
     if (!validate()) return;
 
-    try {
-      setBootStep("auth");
+    await loginPlayer(formLogin.username, formLogin.password);
 
-      await loginPlayer(formLogin.username, formLogin.password); // 🔐 auth
-
-      setBootStep("loadingData"); 
-
-      // โหลดข้อมูลเกมทั้งหมด
-      await Promise.all([
-        fetchAllStage(),
-        fetchAllShop(),
-      ]);
-
-      goToHomePage();
-    } catch (err) {
-      setBootStep("idle"); 
-    }
+    goToHomePage();
   };
 
   //loding
-  if (bootStep !== "idle" && bootStep !== "auth") {
-    return (
-      <Box
-        sx={{
-          width: "100vw",
-          height: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#ffffff",
-        }}
-      >
-        <Loading />
-      </Box>
-    );
-  }
 
   return (
     <Box
@@ -137,26 +154,51 @@ const LoginPage = () => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#ffffff",
+        background: `
+      radial-gradient(circle at top, #2a1f3f, #0b1020 60%)
+    `,
+        overflow: "hidden",
       }}
     >
-      <Box
-        sx={{
-          width: 550,
-          bgcolor: "#D9D9D9",
-          p: 5,
-          borderRadius: "40px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 2,
-        }}
+      <FloatingLetters />
+      {/* <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 120 }}
       >
+        
+      </motion.div> */}
+      
+      <PaperFrame>
+        {/* <Box
+          sx={{
+            width: 520,
+            bgcolor: "#f5ecd8", // กระดาษ
+            p: 5,
+            border: "4px solid #6b4a2d", // ขอบ pixel
+            boxShadow: "8px 8px 0 #4a2f18", // เงาแข็ง RPG
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 2,
+            position: "relative",
+
+            // glow เวทเบาๆ
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              inset: -6,
+              border: "2px solid rgba(180,160,255,0.3)",
+              pointerEvents: "none",
+            },
+          }}
+        > */}
+        <Box sx={{ position: "absolute", top: -10, left: -10 }}>⭐</Box>
         <Typography
           sx={{
             fontSize: "48px",
-            fontWeight: "bold",
-            fontFamily: "'Concert One', sans-serif",
+            // fontWeight: "bold",
+            fontFamily: "Fantasy",
           }}
         >
           Login
@@ -216,13 +258,15 @@ const LoginPage = () => {
               fontFamily: "'Concert One'",
               fontSize: "16px",
               cursor: "pointer",
+              "&:hover": { textDecoration: "underline" },
             }}
             onClick={goToRegister}
           >
             register
           </Typography>
         </Box>
-      </Box>
+        {/* </Box> */}
+      </PaperFrame>
     </Box>
   );
 };

@@ -8,13 +8,11 @@ import { useCallback } from "react";
 
 export const useLoginPlayer = () => {
   const dispatch = useAppDispatch();
-  const playerLogin = useAppSelector((state) => state.auth.currentUserLogin)
+
   const message = useAppSelector((state) => state.auth.backendLoginMessage);
-  const loading = useAppSelector((state) => state.auth.LoginState);
-  const loadingSuccess = useAppSelector((state) => state.auth.loginSuccess);
-  //console.log("playerLogin state:", playerLogin);
-  //console.log("loading state:", loading);
-  console.log("Login :",playerLogin)
+  const loading = useAppSelector((state) => state.auth.loginLoading);
+
+
   const loginPlayer = useCallback(
     (username: string, password: string) => {
       return dispatch(loginUser({ username, password })).unwrap();
@@ -29,7 +27,7 @@ export const useLoginPlayer = () => {
   return {
     message,
     loading,
-    loadingSuccess,
+   
     loginPlayer,
     // clearBackendMessage,
   };
