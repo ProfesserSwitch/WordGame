@@ -3,6 +3,7 @@ import { Box, Typography, Button } from "@mui/material";
 import { FormTextField } from "../../components/FormTextField";
 import { useNavigate } from "react-router-dom";
 import { useRegisPlayer } from "./hook/useRegisPlayer";
+import PaperFrame from "../../components/PaparFrame/PaperFrame";
 interface RegisterForm {
   email: string;
   username: string;
@@ -117,39 +118,20 @@ const RegisterPage = () => {
   };
 
   return (
-    <Box
-      sx={{
-        width: "100vw",
-        height: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#ffffff",
-      }}
-    >
-      {/* กล่องฟอร์มตรงกลาง */}
-      {/* <FormLogin /> */}
-      <Box
+    <Box sx={{display:'flex' ,flexDirection:'column',alignItems: "center",}}>
+      <Typography
+        align="center"
         sx={{
-          width: 550,
-          bgcolor: "#D9D9D9",
-          p: 5,
-          borderRadius: "40px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
+          fontSize: "79px",
+          // fontWeight: "bold",
+          fontFamily: "'Press Start 2P'",
+          color:'#E8E9CD',
+          letterSpacing: "2px",
         }}
       >
-        <Typography
-          sx={{
-            fontSize: "48px",
-            // fontWeight: "bold",
-            fontFamily: "Fantasy"
-          }}
-        >
-          Register
-        </Typography>
-
+        Register
+      </Typography>
+      <PaperFrame>
         <FormTextField
           label="Username"
           name="username"
@@ -196,13 +178,13 @@ const RegisterPage = () => {
           onClick={handleSubmit}
           sx={{
             mt: 2,
-            bgcolor: "black",
-            color: "white",
+            bgcolor: "#694037",
+            color: "#E8E9CD",
 
             borderRadius: "15px",
-            fontSize: "24px",
-            fontFamily: "'Concert One'",
-            "&:hover": { bgcolor: "#333" },
+            fontSize: "18px",
+            fontFamily: "'Press Start 2P'",
+            "&:hover": { bgcolor: "#4f2e27ff" },
           }}
         >
           Register
@@ -211,28 +193,28 @@ const RegisterPage = () => {
         <Box
           sx={{
             display: "flex",
-            justifyContent: "space-between",
-            width: "80%",
+            justifyContent: "space-evenly",
+            width: "100%",
             mt: 2,
           }}
         >
-          <Typography sx={{ fontFamily: "'Concert One'", fontSize: "16px" }}>
+          <Typography sx={{ fontFamily: "'Press Start 2P'", fontSize: "10px" }}>
             Don’t have an account ?
           </Typography>
 
           <Typography
             sx={{
-              fontFamily: "'Concert One'",
-              fontSize: "16px",
+              fontFamily: "'Press Start 2P'",
+              fontSize: "10px",
               cursor: "pointer",
-              // ":hover":co
+              "&:hover": { textDecoration: "underline" },
             }}
             onClick={() => navigate("/")}
           >
             Login
           </Typography>
         </Box>
-      </Box>
+      </PaperFrame>
     </Box>
   );
 };

@@ -12,55 +12,6 @@ interface LoginForm {
 
 type BootStep = "idle" | "auth" | "loadingData";
 
-const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-
-function FloatingLetters() {
-  const items = useMemo(() => {
-    return Array.from({ length: 60 }).map((_, i) => {
-      const letter = letters[Math.floor(Math.random() * letters.length)];
-      return {
-        id: i,
-        letter,
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-        size: Math.random() * 10 + 8,
-        duration: Math.random() * 10 + 10,
-        delay: Math.random() * 5,
-        opacity: Math.random() * 0.4 + 0.2,
-      };
-    });
-  }, []);
-
-  return (
-    <Box sx={{ position: "absolute", inset: 0, overflow: "hidden" }}>
-      {items.map((item) => (
-        <motion.div
-          key={item.id}
-          initial={{ y: "100vh", opacity: 0 }}
-          animate={{ y: "-10vh", opacity: item.opacity }}
-          transition={{
-            duration: item.duration,
-            repeat: Infinity,
-            delay: item.delay,
-            ease: "linear",
-          }}
-          style={{
-            position: "absolute",
-            left: `${item.x}vw`,
-            fontSize: item.size,
-            fontFamily: "'Press Start 2P'",
-            color: "#eaeaea",
-            textShadow: "0 0 6px rgba(180,160,255,0.6)",
-            pointerEvents: "none",
-          }}
-        >
-          {item.letter}
-        </motion.div>
-      ))}
-    </Box>
-  );
-}
-
 const LoginPage = () => {
   const { message, loading, loginPlayer } = useLoginPlayer();
   const navigate = useNavigate();
@@ -148,61 +99,22 @@ const LoginPage = () => {
 
   return (
     <Box
-      sx={{
-        width: "100vw",
-        height: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: `
-      radial-gradient(circle at top, #2a1f3f, #0b1020 60%)
-    `,
-        overflow: "hidden",
-      }}
+      sx={{ display: "flex", flexDirection: "column", alignItems: "center" ,gap:5}}
     >
-      <FloatingLetters />
-      {/* <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 120 }}
+      <Typography
+        align="center"
+        sx={{
+          fontSize: "79px",
+          // fontWeight: "bold",
+          fontFamily: "'Press Start 2P'",
+          color: "#E8E9CD",
+          letterSpacing: "2px",
+        }}
       >
-        
-      </motion.div> */}
-      
+        Login
+      </Typography>{" "}
       <PaperFrame>
-        {/* <Box
-          sx={{
-            width: 520,
-            bgcolor: "#f5ecd8", // กระดาษ
-            p: 5,
-            border: "4px solid #6b4a2d", // ขอบ pixel
-            boxShadow: "8px 8px 0 #4a2f18", // เงาแข็ง RPG
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 2,
-            position: "relative",
-
-            // glow เวทเบาๆ
-            "&::before": {
-              content: '""',
-              position: "absolute",
-              inset: -6,
-              border: "2px solid rgba(180,160,255,0.3)",
-              pointerEvents: "none",
-            },
-          }}
-        > */}
-        <Box sx={{ position: "absolute", top: -10, left: -10 }}>⭐</Box>
-        <Typography
-          sx={{
-            fontSize: "48px",
-            // fontWeight: "bold",
-            fontFamily: "Fantasy",
-          }}
-        >
-          Login
-        </Typography>
+        {/* <Box sx={{ position: "absolute", top: -10, left: -10 }}>⭐</Box> */}
 
         <FormTextField
           label="Username"
@@ -230,12 +142,13 @@ const LoginPage = () => {
           onClick={handleSubmit}
           sx={{
             mt: 2,
-            bgcolor: "black",
-            color: "white",
+            mb: 2,
+            bgcolor: "#694037",
+            color: "#E8E9CD",
             borderRadius: "15px",
-            fontSize: "24px",
-            fontFamily: "'Concert One'",
-            "&:hover": { bgcolor: "#333" },
+            fontSize: "20px",
+            fontFamily: "'Press Start 2P'",
+            "&:hover": { bgcolor: "#4f2e27ff" },
           }}
         >
           Login
@@ -244,19 +157,19 @@ const LoginPage = () => {
         <Box
           sx={{
             display: "flex",
-            justifyContent: "space-between",
-            width: "80%",
+            justifyContent: "space-evenly",
+            width: "100%",
             mt: 1,
           }}
         >
-          <Typography sx={{ fontFamily: "'Concert One'", fontSize: "16px" }}>
+          <Typography sx={{ fontFamily: "'Press Start 2P'", fontSize: "10px" }}>
             Don’t have an account ?
           </Typography>
 
           <Typography
             sx={{
-              fontFamily: "'Concert One'",
-              fontSize: "16px",
+              fontFamily: "'Press Start 2P'",
+              fontSize: "10px",
               cursor: "pointer",
               "&:hover": { textDecoration: "underline" },
             }}
