@@ -1,35 +1,11 @@
-import { useState, useEffect } from "react";
 import { Box } from "@mui/material";
-import { DataFlowProvider } from "./context/DataFlowContext";
+import { Outlet, Navigate } from "react-router-dom";
 import GameAppBar from "../../components/AppBar";
-import AdvantureFeature from "./feature/AdvantureFeature";
-import ShopSpellFeature from "./feature/ShopSpellFeature";
-import MonsterLibrary from "./feature/MonsterLibrary";
-import Quest from "./feature/Quest";
 import { Loading } from "../../components/Loading/Loading";
 import { useLoadData } from "../LoginPage/hook/useLoadData";
-// const HomePageInner = () => {
-//   const [activeTab, setActiveTab] = useState<null | "shop" |"quest"| "monster" | "adventure" | "settings">(null);
-
-//   return (
-//     <>
-//       <GameAppBar onSelectTab={setActiveTab} />
-
-//       {activeTab === "shop" && <ShopSpellFeature />}
-//       {activeTab === "quest" && <Quest />}
-//       {activeTab === "monster" && <MonsterLibrary />}
-//       {activeTab === "adventure" && <AdvantureFeature />}
-
-//       {/* {activeTab === "settings" && <SettingsFeature />}  */}
-//     </>
-//   );
-// };
+import { useEffect } from "react";
 
 const HomePage = () => {
-  const [activeTab, setActiveTab] = useState<
-    null |"home" | "shop" | "quest" | "monster" | "adventure" | "settings" | false
-  >(null);
-
   const { loading, fetchAllData } = useLoadData();
 
   useEffect(() => {
@@ -51,18 +27,14 @@ const HomePage = () => {
         <Loading />
       </Box>
     );
-  };
-  
+  }
+
   return (
     <>
-      <GameAppBar onSelectTab={setActiveTab}/>
+      <GameAppBar />
 
-     
-      {activeTab === "shop" && <ShopSpellFeature />}
-      {activeTab === "quest" && <Quest />}
-      {activeTab === "monster" && <MonsterLibrary />}
-      {activeTab === "adventure" && <AdvantureFeature />}
-      {/* {activeTab === "settings" && <SettingsFeature />}  */}
+      {/* “ช่องว่าง” ที่ React Router เอา component ของ route ลูกมาใส่ เหมือนกล่องอะ กล่องว่างๆๆ */}
+      <Outlet />
     </>
   );
 };

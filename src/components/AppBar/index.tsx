@@ -7,54 +7,26 @@ import {
   Tab,
   Tooltip,
 } from "@mui/material";
-import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import SettingsIcon from "@mui/icons-material/Settings";
 import sword from "../../assets/icons/sword.svg";
 import store from "../../assets/icons/store.svg";
 import monster from "../../assets/icons/monster.svg";
 import quest from "../../assets/icons/quest.svg";
-type AppBarProps = {
-  onSelectTab: (
-    tabName:
-      | "home"
-      | "adventure"
-      | "quest"
-      | "shop"
-      | "monster"
-      | "settings"
-      | false
-  ) => void;
-};
-
 type TabValue = "shop" | "quest" | "monster" | "adventure" | false;
 
 type CenterTab = {
-  value: "shop" | "quest" | "monster" | "adventure";
+  value: Exclude<TabValue, false>;
   label: string;
   icon: string;
+  path: string;
 };
 
 const centerTabs: CenterTab[] = [
-  {
-    value: "shop",
-    label: "Shop",
-    icon: store,
-  },
-  {
-    value: "quest",
-    label: "Quest",
-    icon: quest,
-  },
-  {
-    value: "monster",
-    label: "Monster Diary",
-    icon: monster,
-  },
-  {
-    value: "adventure",
-    label: "Adventure",
-    icon: sword,
-  },
+  { value: "shop", label: "Shop", icon: store, path: "/homepage/shop" },
+  { value: "quest", label: "Quest", icon: quest, path: "/homepage/quest" },
+  { value: "monster", label: "Monster Diary", icon: monster, path: "/homepage/monster" },
+  { value: "adventure", label: "Adventure", icon: sword, path: "/homepage/adventure" },
 ];
 
 const tabStyle = {
@@ -73,21 +45,18 @@ const tabStyle = {
   },
 };
 
-const GameAppBar = ({ onSelectTab }: AppBarProps) => {
-  const [activeTab, setActiveTab] = useState<TabValue>(false);
+const GameAppBar = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // 🔹 หา tab ที่ตรงกับ path ปัจจุบัน
+  const activeTab: TabValue =
+    centerTabs.find((tab) => location.pathname.startsWith(tab.path))?.value ??
+    false;
 
   const handleChange = (_: React.SyntheticEvent, value: TabValue) => {
-    setActiveTab(value);
-    onSelectTab(value);
-  };
-
-  const handleSettingsClick = () => {
-    setActiveTab(false);
-    onSelectTab("settings");
-  };
-  const handleHomeClick = () => {
-    setActiveTab(false);
-    onSelectTab("home");
+    const target = centerTabs.find((t) => t.value === value);
+    if (target) navigate(target.path);
   };
 
   return (
@@ -103,7 +72,7 @@ const GameAppBar = ({ onSelectTab }: AppBarProps) => {
         {/* 🔹 LEFT : LOGO */}
         <Box sx={{ flex: 1 }}>
           <Typography
-            onClick={handleHomeClick}
+            onClick={() => navigate("/home")}
             sx={{
               fontFamily: "Fantasy",
               fontSize: 28,
@@ -116,7 +85,7 @@ const GameAppBar = ({ onSelectTab }: AppBarProps) => {
           </Typography>
         </Box>
 
-        {/* 🔸 CENTER : TABS (เหมือน Facebook) */}
+        {/* 🔸 CENTER : TABS */}
         <Box sx={{ flex: 2, display: "flex", justifyContent: "center" }}>
           <Tabs
             value={activeTab}
@@ -130,9 +99,7 @@ const GameAppBar = ({ onSelectTab }: AppBarProps) => {
             }}
             sx={{
               minHeight: 48,
-              "& .MuiTabs-flexContainer": {
-                gap: 1,
-              },
+              "& .MuiTabs-flexContainer": { gap: 1 },
             }}
           >
             {centerTabs.map((tab) => (
@@ -156,7 +123,7 @@ const GameAppBar = ({ onSelectTab }: AppBarProps) => {
         {/* 🔹 RIGHT : SETTINGS */}
         <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
           <Box
-            onClick={handleSettingsClick}
+            onClick={() => navigate("/home/settings")}
             sx={{
               width: 44,
               height: 44,
@@ -168,10 +135,6 @@ const GameAppBar = ({ onSelectTab }: AppBarProps) => {
               justifyContent: "center",
               cursor: "pointer",
               boxShadow: "0 3px 0 #3e2615",
-              "&:hover": {
-                transform: "translateY(-1px)",
-                boxShadow: "0 5px 0 #3e2615",
-              },
             }}
           >
             <SettingsIcon sx={{ color: "#3e2615" }} />
