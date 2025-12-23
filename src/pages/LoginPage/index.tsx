@@ -1,20 +1,40 @@
-import { Box, Typography, Button } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Button,
+  CircularProgress,
+  Snackbar,
+} from "@mui/material";
 import { FormTextField } from "../../components/FormTextField";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLoginPlayer } from "./hook/useLoginPlayer";
-import { motion } from "framer-motion";
+import GameSnackbar from "../../components/Snackbar";
 import PaperFrame from "../../components/PaparFrame/PaperFrame";
+import type { SnackbarState } from "../RegisterPage/hook/const";
 interface LoginForm {
   username: string;
   password: string;
 }
 
-type BootStep = "idle" | "auth" | "loadingData";
-
 const LoginPage = () => {
-  const { message, loading, loginPlayer } = useLoginPlayer();
+  const {
+    message,
+    isLoading,
+    loginPlayer,
+
+    error,
+    isFailed,
+    clearStateLogin,
+    clearBackendMessage,
+  } = useLoginPlayer();
   const navigate = useNavigate();
+
+  const [snackbar, setSnackbar] = useState<SnackbarState>({
+    open: false,
+    message: "",
+    type: "info",
+  });
 
   const [showPassword, setShowPassword] = useState(false);
   const handleClickShowPassword = () => {
@@ -22,9 +42,10 @@ const LoginPage = () => {
   };
   const goToRegister = () => {
     navigate("/register");
+    clearBackendMessage();
   };
   const goToHomePage = useCallback(() => {
-    navigate("/homepage");
+    navigate("/");
   }, [navigate]);
 
   // state
@@ -58,11 +79,13 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (!message) return;
+    setSnackbar(() => ({ open: false, message: "", type: "info" }));
     setErrors((prev) => ({
       ...prev,
       username: message.includes("username") ? message : undefined,
       password: message.includes("password") ? message : undefined,
     }));
+
   }, [message]);
 
   const validate = () => {
@@ -95,92 +118,128 @@ const LoginPage = () => {
     goToHomePage();
   };
 
-  //loding
+  //error network reject
+  useEffect(() => {
+    if (isFailed) {
+      setSnackbar({
+        open: true,
+        message: "Failed to Login",
+        type: "error",
+      });
+    }
+  }, [isFailed]);
 
   return (
-    <Box
-      sx={{ display: "flex", flexDirection: "column", alignItems: "center" ,gap:5}}
-    >
-      <Typography
-        align="center"
+    <>
+      <Box
         sx={{
-          fontSize: "79px",
-          // fontWeight: "bold",
-          fontFamily: "'Press Start 2P'",
-          color: "#E8E9CD",
-          letterSpacing: "2px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 3,
         }}
       >
-        Login
-      </Typography>{" "}
-      <PaperFrame>
-        {/* <Box sx={{ position: "absolute", top: -10, left: -10 }}>⭐</Box> */}
-
-        <FormTextField
-          label="Username"
-          name="username"
-          isPassword={false}
-          value={formLogin.username}
-          onChange={handleInputChange}
-          errorMessage={errors.username}
-          helperText={errors.username}
-        />
-        <FormTextField
-          label="Password"
-          name="password"
-          showPassword={showPassword}
-          isPassword={true}
-          onClick={handleClickShowPassword}
-          value={formLogin.password}
-          onChange={handleInputChange}
-          errorMessage={errors.password}
-          helperText={errors.password}
-        />
-
-        <Button
-          fullWidth
-          onClick={handleSubmit}
+        <Typography
+          align="center"
           sx={{
-            mt: 2,
-            mb: 2,
-            bgcolor: "#694037",
-            color: "#E8E9CD",
-            borderRadius: "15px",
-            fontSize: "20px",
+            fontSize: "79px",
+            // fontWeight: "bold",
             fontFamily: "'Press Start 2P'",
-            "&:hover": { bgcolor: "#4f2e27ff" },
+            color: "#E8E9CD",
+            letterSpacing: "2px",
           }}
         >
           Login
-        </Button>
+        </Typography>{" "}
+        <PaperFrame>
+          {/* <Box sx={{ position: "absolute", top: -10, left: -10 }}>⭐</Box> */}
 
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-evenly",
-            width: "100%",
-            mt: 1,
-          }}
-        >
-          <Typography sx={{ fontFamily: "'Press Start 2P'", fontSize: "10px" }}>
-            Don’t have an account ?
-          </Typography>
+          <FormTextField
+            label="Username"
+            name="username"
+            isPassword={false}
+            value={formLogin.username}
+            onChange={handleInputChange}
+            errorMessage={errors.username}
+            helperText={errors.username}
+          />
+          <FormTextField
+            label="Password"
+            name="password"
+            showPassword={showPassword}
+            isPassword={true}
+            onClick={handleClickShowPassword}
+            value={formLogin.password}
+            onChange={handleInputChange}
+            errorMessage={errors.password}
+            helperText={errors.password}
+          />
 
-          <Typography
+          <Button
+            fullWidth
+            disabled={isLoading}
+            onClick={handleSubmit}
             sx={{
+              mt: 2,
+              mb: 2,
+              bgcolor: "#694037",
+              color: "#E8E9CD",
+              borderRadius: "15px",
+              fontSize: "20px",
               fontFamily: "'Press Start 2P'",
-              fontSize: "10px",
-              cursor: "pointer",
-              "&:hover": { textDecoration: "underline" },
+              "&:hover": { bgcolor: "#4f2e27ff" },
+              "&.Mui-disabled": {
+                bgcolor: "#694037", // ไม่ให้จาง
+                color: "#E8E9CD", // ฟอนต์ไม่ดำ
+                opacity: 0.8, // ลดนิดเดียวพอ
+              },
             }}
-            onClick={goToRegister}
+            startIcon={
+              isLoading ? <CircularProgress size={20} color="inherit" /> : null
+            }
           >
-            register
-          </Typography>
-        </Box>
-        {/* </Box> */}
-      </PaperFrame>
-    </Box>
+            {isLoading ? "...Login" : "Login"}
+          </Button>
+
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-evenly",
+              width: "100%",
+              mt: 1,
+            }}
+          >
+            <Typography
+              sx={{ fontFamily: "'Press Start 2P'", fontSize: "10px" }}
+            >
+              Don’t have an account ?
+            </Typography>
+
+            <Typography
+              sx={{
+                fontFamily: "'Press Start 2P'",
+                fontSize: "10px",
+                cursor: "pointer",
+                "&:hover": { textDecoration: "underline" },
+              }}
+              onClick={goToRegister}
+            >
+              register
+            </Typography>
+          </Box>
+          {/* </Box> */}
+        </PaperFrame>
+      </Box>
+      <GameSnackbar
+        open={snackbar.open}
+        message={snackbar.message}
+        type={snackbar.type}
+        onClose={() => {
+          setSnackbar(() => ({ open: false, message: "", type: "info" }));
+          clearStateLogin();
+        }}
+      />
+    </>
   );
 };
 

@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type { UserRegister, UserLogin } from "../types";
+import { LOADED,LOADING,FAILED,INITIALIZED } from "./const";
 const API_URL = import.meta.env.VITE_API_URL || "http://25.16.201.205:3000";
 
 // Register user thunk
@@ -8,20 +9,28 @@ export const registerUser = createAsyncThunk<
   { email: string; username: string; password: string },
   { rejectValue: string }
 >("auth/registerUser", async (userData, { rejectWithValue }) => {
-  const res = await fetch(`${API_URL}/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(userData),
-    credentials: "include",
-  });
+  try {
+    const res = await fetch(`${API_URL}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(userData),
+      credentials: "include",
+    });
+    if (!res.ok) {
+      return rejectWithValue("Server error, please try again");
+    }
 
-  const data = await res.json();
+    const data = await res.json();
 
-  if (!data.isSuccess) {
-    return rejectWithValue(data.message); //  เอา message backend มาใช้
+    if (!data.isSuccess) {
+      return rejectWithValue(data.message); //  เอา message backend มาใช้
+    }
+
+    return data;
+  } catch (error) {
+    // 🌐 network error / server down / offline
+    return rejectWithValue("Network error, please check your connection");
   }
-
-  return data;
 });
 
 //Login
@@ -30,23 +39,33 @@ export const loginUser = createAsyncThunk<
   { username: string; password: string },
   { rejectValue: string }
 >("auth/loginUser", async (credentials, { rejectWithValue }) => {
-  const res = await fetch(`${API_URL}/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(credentials),
-    credentials: "include",
-  });
-  const data = await res.json();
+  try {
+    const res = await fetch(`${API_URL}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials),
+      credentials: "include",
+    });
 
-  console.log("login data:", data);
+    // ❗ backend ตอบ แต่ status ไม่ใช่ 2xx
+    if (!res.ok) {
+      return rejectWithValue("Server error, please try again");
+    }
 
-  if (!data.isSuccess) {
-    return rejectWithValue(data.message);
+    const data = await res.json();
+    console.log("login data:", data);
+
+    // ❗ backend business error (user/pass ผิด)
+    if (!data.isSuccess) {
+      return rejectWithValue(data.message);
+    }
+
+    localStorage.setItem("token", data.token);
+    return data.user;
+  } catch (error) {
+    // 🌐 network error / server down / offline
+    return rejectWithValue("Network error, please check your connection");
   }
-  // เก็บ token ไว้จดจำตอน login เก็บไว้ใน localStorage
-  localStorage.setItem("token", data.token);
-
-  return data.user;
 });
 
 //logout
@@ -94,23 +113,27 @@ export const checkAuth = createAsyncThunk(
 );
 
 export interface AuthState {
-  registerLoading: boolean;
-  loginLoading: boolean;
-  authLoading: boolean; 
+  registerState: string;
+  loginState: string;
+  authLoading: boolean;
   isAuthenticated: boolean;
   currentUser: UserLogin | null;
   backendRegisMessage: string | null;
   backendLoginMessage: string | null;
+  errorLogin: boolean;
+  errorRegister: boolean;
 }
 
 const initialState: AuthState = {
-  registerLoading: false,
-  loginLoading: false,
+  registerState: INITIALIZED,
+  loginState: INITIALIZED,
   authLoading: true,
   isAuthenticated: false,
   currentUser: null,
   backendRegisMessage: null,
   backendLoginMessage: null,
+  errorLogin: false,
+  errorRegister: false,
 };
 
 const authSlice = createSlice({
@@ -125,40 +148,53 @@ const authSlice = createSlice({
     clearErrorRegisMessage: (state) => {
       state.backendRegisMessage = null;
     },
-    // clearErrorLoginMessage: (state) => {
-    //   state.backendLoginMessage = null;
-    // },
+    clearErrorLoginMessage: (state) => {
+      state.backendLoginMessage = null;
+    },
+    clearLoginState: (state) => {
+      state.loginState = INITIALIZED;
+    },
+    clearRegisterState: (state) =>{
+      state.registerState = INITIALIZED;
+    }
   },
   extraReducers: (builder) => {
     /* REGISTER */
     builder.addCase(registerUser.pending, (state) => {
-      state.registerLoading = true;
+      state.registerState = LOADING;
       state.backendRegisMessage = null;
+      state.errorRegister = false;
     });
     builder.addCase(registerUser.fulfilled, (state, action) => {
-      state.registerLoading = false;
+      state.registerState = LOADED;
       state.currentUser = action.payload;
+      state.errorRegister = false;
     });
     builder.addCase(registerUser.rejected, (state, action) => {
-      state.registerLoading = false;
+      state.registerState = FAILED;
       state.backendRegisMessage =
         action.payload || "register backendRegisMessage";
+      state.errorRegister = true;
     });
 
     //* LOGIN */
     builder.addCase(loginUser.pending, (state) => {
-      state.loginLoading = true;
+      state.loginState = LOADING;
       state.backendLoginMessage = null;
+      state.errorLogin = false;
     });
     builder.addCase(loginUser.fulfilled, (state, action) => {
-      state.loginLoading = false;
+      state.loginState = LOADED;
       state.isAuthenticated = true;
       state.currentUser = action.payload.user ?? null;
+      state.errorLogin = false;
     });
     builder.addCase(loginUser.rejected, (state, action) => {
-      state.loginLoading = false;
+      state.loginState = FAILED;
       state.isAuthenticated = false;
       state.backendLoginMessage = action.payload || null;
+      state.errorLogin = true;
+      // alert("Please try again");
     });
 
     //* LOGOUT */
@@ -185,5 +221,5 @@ const authSlice = createSlice({
 });
 
 export const { logout } = authSlice.actions;
-export const { clearErrorRegisMessage } = authSlice.actions;
+export const { clearErrorRegisMessage , clearErrorLoginMessage,clearRegisterState, clearLoginState } = authSlice.actions;
 export default authSlice.reducer;

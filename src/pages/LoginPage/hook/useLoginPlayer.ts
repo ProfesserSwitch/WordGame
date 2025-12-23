@@ -1,8 +1,9 @@
 import {
+  clearLoginState,
   loginUser,
-  //   clearErrorLoginMessage,
+    clearErrorLoginMessage,
 } from "../../../store/reducers/authentication";
-
+import { LOADED,LOADING,FAILED } from "../../../store/reducers/const";
 import { useAppDispatch, useAppSelector } from "../../../hook/auth";
 import { useCallback } from "react";
 
@@ -10,7 +11,13 @@ export const useLoginPlayer = () => {
   const dispatch = useAppDispatch();
 
   const message = useAppSelector((state) => state.auth.backendLoginMessage);
-  const loading = useAppSelector((state) => state.auth.loginLoading);
+  const state = useAppSelector((state)=> state.auth.loginState);
+  const error = useAppSelector((state)=> state.auth.errorLogin)
+
+  //state 
+  const isLoading = state === LOADING;
+  const isLoaded  = state === LOADED;
+  const isFailed = state === FAILED;
 
 
   const loginPlayer = useCallback(
@@ -20,15 +27,24 @@ export const useLoginPlayer = () => {
     [dispatch]
   );
 
-  //   const clearBackendMessage = useCallback(() => {
-  //     dispatch(clearErrorLoginMessage());
-  //   }, [dispatch]);
+    const clearBackendMessage = useCallback(() => {
+      dispatch(clearErrorLoginMessage());
+    }, [dispatch]);
+
+  const clearStateLogin = useCallback(()=>{
+    dispatch(clearLoginState())
+  },[dispatch])
 
   return {
     message,
-    loading,
-   
+    error,
+    
+    isLoading,
+    isFailed,
+    isLoaded,
+
     loginPlayer,
-    // clearBackendMessage,
+    clearBackendMessage,
+    clearStateLogin,
   };
 };

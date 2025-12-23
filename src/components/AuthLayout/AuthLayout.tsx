@@ -9,7 +9,8 @@ const AuthLayout = () => {
         width: "100vw",
         height: "100vh",
         position: "relative",
-        background: "radial-gradient(circle at top, #2a1f3f, #0b1020 60%)",
+        // background: "radial-gradient(circle at top, #2a1f3f, #16141A 60%)", #0b1020
+        background:'#16141A',
         overflow: "hidden",
       }}
     >

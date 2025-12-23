@@ -36,11 +36,9 @@ export const FormTextField = ({
       {isPassword ? (
         <Box sx={{ width: "100%" }}>
           <Typography
-            
             sx={{
               fontFamily: "'Press Start 2P'",
               fontSize: "12px",
-              
             }}
           >
             {label}
@@ -58,16 +56,22 @@ export const FormTextField = ({
               "& .MuiOutlinedInput-root": {
                 height: 46,
                 borderRadius: "15px",
+                ontFamily: "'Press Start 2P'",
                 backgroundColor: "rgba(255, 255, 255, 1)",
                 "& fieldset": {
                   border: "3px solid #8c6565ff",
                 },
                 "&:hover fieldset": {
-                   border: "4px solid #8c6565ff",// hover
+                  border: "4px solid #8c6565ff", // hover
                 },
                 "&.Mui-focused fieldset": {
                   borderColor: "#8c6565ff", // ตอน focus
                   borderWidth: 4,
+                },
+                "& .MuiOutlinedInput-input": {
+                  fontFamily: "'Press Start 2P'",
+                  fontSize: "10px",
+                  padding: "12px",
                 },
               },
             }}
@@ -93,7 +97,7 @@ export const FormTextField = ({
       ) : (
         <Box sx={{ width: "100%" }}>
           <Typography
-             sx={{
+            sx={{
               fontFamily: "'Press Start 2P'",
               fontSize: "12px",
             }}
@@ -110,7 +114,7 @@ export const FormTextField = ({
             variant="outlined"
             sx={{
               "& .MuiOutlinedInput-root": {
-                 height: 46,
+                height: 46,
                 // maxHeight:45,
                 borderRadius: "15px",
                 backgroundColor: "rgba(255, 255, 255, 1)",
@@ -118,11 +122,16 @@ export const FormTextField = ({
                   border: "3px solid #8c6565ff",
                 },
                 "&:hover fieldset": {
-                   border: "4px solid #8c6565ff",// hover
+                  border: "4px solid #8c6565ff", // hover
                 },
                 "&.Mui-focused fieldset": {
                   borderColor: "#8c6565ff", // ตอน focus
                   borderWidth: 4,
+                },
+                "& .MuiOutlinedInput-input": {
+                  fontFamily: "'Press Start 2P'",
+                  fontSize: "10px",
+                  padding: "12px",
                 },
               },
             }}

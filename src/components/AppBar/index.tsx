@@ -6,13 +6,20 @@ import {
   Tabs,
   Tab,
   Tooltip,
+  Popover,
+  Avatar,
 } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import SettingsIcon from "@mui/icons-material/Settings";
 import sword from "../../assets/icons/sword.svg";
 import store from "../../assets/icons/store.svg";
 import monster from "../../assets/icons/monster.svg";
 import quest from "../../assets/icons/quest.svg";
+import SettingsFeature from "../../pages/HomePage/feature/SettingFeature";
+import taro from "../../assets/icons/taro.jpg";
+import coin from "../../assets/icons/coin.svg";
+
 type TabValue = "shop" | "quest" | "monster" | "adventure" | false;
 
 type CenterTab = {
@@ -23,31 +30,45 @@ type CenterTab = {
 };
 
 const centerTabs: CenterTab[] = [
-  { value: "shop", label: "Shop", icon: store, path: "/homepage/shop" },
-  { value: "quest", label: "Quest", icon: quest, path: "/homepage/quest" },
-  { value: "monster", label: "Monster Diary", icon: monster, path: "/homepage/monster" },
-  { value: "adventure", label: "Adventure", icon: sword, path: "/homepage/adventure" },
+  { value: "shop", label: "Shop", icon: store, path: "/shop" },
+  { value: "quest", label: "Quest", icon: quest, path: "/quest" },
+  {
+    value: "monster",
+    label: "Monster Diary",
+    icon: monster,
+    path: "/monster",
+  },
+  {
+    value: "adventure",
+    label: "Adventure",
+    icon: sword,
+    path: "/adventure",
+  },
 ];
 
 const tabStyle = {
-  minWidth: 72,
+  minWidth: { xs: 20, sm: 40, md: 72 },
   minHeight: 48,
   borderRadius: "10px",
   color: "#3e2615",
   transition: "all 0.15s ease-out",
 
   "&.Mui-selected": {
-    backgroundColor: "#f5e6c8",
+    backgroundColor: "#c5c6acff",
   },
 
   "&:hover": {
-    backgroundColor: "#f0ddb0",
+    backgroundColor: "#c5c6acff",
   },
 };
 
 const GameAppBar = () => {
   const location = useLocation();
   const navigate = useNavigate();
+
+  // popover
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const open = Boolean(anchorEl);
 
   // 🔹 หา tab ที่ตรงกับ path ปัจจุบัน
   const activeTab: TabValue =
@@ -63,19 +84,19 @@ const GameAppBar = () => {
     <AppBar
       position="static"
       sx={{
-        background: "#e6d3a3",
-        borderBottom: "6px solid #5c3a1e",
+        background: "#E8E9CD",
+        borderBottom: "10px solid #694037",
         boxShadow: "0 6px 0 #3e2615",
       }}
     >
-      <Toolbar sx={{ minHeight: 64 }}>
+      <Toolbar sx={{ minHeight: 80 }}>
         {/* 🔹 LEFT : LOGO */}
         <Box sx={{ flex: 1 }}>
           <Typography
-            onClick={() => navigate("/home")}
+            onClick={() => navigate("/")}
             sx={{
               fontFamily: "Fantasy",
-              fontSize: 28,
+              fontSize: { xs: 20, sm: 20, md: 28 },
               cursor: "pointer",
               color: "#3e2615",
               textShadow: "2px 2px 0 #fff3cf",
@@ -86,7 +107,7 @@ const GameAppBar = () => {
         </Box>
 
         {/* 🔸 CENTER : TABS */}
-        <Box sx={{ flex: 2, display: "flex", justifyContent: "center" }}>
+        <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
           <Tabs
             value={activeTab}
             onChange={handleChange}
@@ -108,9 +129,18 @@ const GameAppBar = () => {
                 value={tab.value}
                 icon={
                   <Tooltip title={tab.label}>
-                    <Box component="span">
-                      <img src={tab.icon} width={28} />
-                    </Box>
+                    <Box
+                      component="img"
+                      src={tab.icon}
+                      sx={{
+                        width: {
+                          xs: 20,
+                          sm: 20,
+                          md: 28,
+                        },
+                        imageRendering: "pixelated", // ฟิลเกม pixel
+                      }}
+                    />
                   </Tooltip>
                 }
                 aria-label={tab.label}
@@ -121,24 +151,125 @@ const GameAppBar = () => {
         </Box>
 
         {/* 🔹 RIGHT : SETTINGS */}
-        <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
-          <Box
-            onClick={() => navigate("/home/settings")}
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 2,
+            alignItems: "center",
+          }}
+        >
+          {/* <Box
+            onClick={(e) => setAnchorEl(e.currentTarget)}
             sx={{
               width: 44,
               height: 44,
               borderRadius: "50%",
-              backgroundColor: "#f0ddb0",
+              backgroundColor: "#E8E9CD",
               border: "3px solid #5c3a1e",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               cursor: "pointer",
-              boxShadow: "0 3px 0 #3e2615",
             }}
           >
             <SettingsIcon sx={{ color: "#3e2615" }} />
+          </Box> */}
+          {/* // profile icon เพิ่มเติม */}
+          <Box
+            sx={{
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              pl: 4, // 👈 เผื่อที่ให้ icon
+              pr: 2,
+              py: 0.5,
+              backgroundColor: "#ffffff",
+              border: "3px solid #000",
+              borderRadius: "15px",
+              
+            }}
+          >
+            {/* 🪙 ICON ลอยทับเส้น */}
+            <Box
+              component="img"
+              src={coin}
+              sx={{
+                position: "absolute",
+                left: -14, // 👈 ดันออกนอกกล่อง
+                width: 35,
+                height: 35,
+                borderRadius: "50%",
+                backgroundColor: "inherit",
+                // border: "3px solid #000",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 16,
+              }}
+            />
+             
+
+            {/* 💰 MONEY */}
+            <Typography
+              sx={{
+                fontFamily: "'Press Start 2P'",
+                fontSize: 14,
+                color: "rgba(0, 0, 0, 1)",
+              }}
+
+            >
+              100000
+            </Typography>
           </Box>
+
+          <Box
+            onClick={(e) => setAnchorEl(e.currentTarget)}
+            sx={{
+              width: 44,
+              height: 44,
+              borderRadius: "50%",
+              // backgroundColor: "#E8E9CD",
+              border: "3px solid #000000ff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
+            <Avatar
+              alt="profile-player"
+              src={taro}
+              sx={{ width: 44, height: 44 }}
+            />
+          </Box>
+
+          <Popover
+            open={open}
+            anchorEl={anchorEl}
+            onClose={() => setAnchorEl(null)}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "right",
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "right",
+            }}
+            marginThreshold={16} // 👈 กันชนขอบจอ (สำคัญ)
+            PaperProps={{
+              sx: {
+                borderRadius: "12px",
+                border: "3px solid #5c3a1e",
+                backgroundColor: "#feffeb",
+                boxShadow: "4px 4px 0 #3e2615",
+                maxWidth: "calc(100vw - 32px)", // 👈 กันจอล้น mobile
+              },
+            }}
+          >
+            <SettingsFeature onClose={() => setAnchorEl(null)} />
+          </Popover>
         </Box>
       </Toolbar>
     </AppBar>

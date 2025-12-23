@@ -12,6 +12,7 @@ import AdvantureFeature from "./HomePage/feature/AdvantureFeature";
 import ShopSpellFeature from "./HomePage/feature/ShopSpellFeature";
 import Quest from "./HomePage/feature/Quest";
 import MonsterLibrary from "./HomePage/feature/MonsterLibrary";
+import SettingsFeature from "./HomePage/feature/SettingFeature";
 import GameApp from "./BattlePage/App";
 
 import { Loading } from "../components/Loading/Loading";
@@ -33,17 +34,18 @@ export default function App() {
     <Routes>
       {/* public */}
       <Route element={<AuthLayout/>}>
-        <Route path="/" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
       </Route>
 
       {/* private */}
       <Route element={<PrivateRoute />}>
-        <Route path="/homepage" element={<HomePage />}>
+        <Route path="/" element={<HomePage />}>
           <Route path="adventure" element={<AdvantureFeature />} />
           <Route path="shop" element={<ShopSpellFeature />} />
           <Route path="quest" element={<Quest />} />
           <Route path="monster" element={<MonsterLibrary />} />
+
         </Route>
         <Route path="/battle" element={<GameApp />} />
       </Route>

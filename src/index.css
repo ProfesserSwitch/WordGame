@@ -2,11 +2,11 @@ body {
   margin: 0 !important;
   padding: 0 !important;
   overflow: hidden !important;
-  background-color: #f7ebeb !important;
-  background-image: url('./assets/icons/background.svg') !important;
+  background-color: #16141A !important;
+  /* background-image: url('./assets/icons/background.svg') !important;
   background-size: cover !important;
   background-repeat: no-repeat !important;
-  background-attachment: fixed !important;
+  background-attachment: fixed !important; */
 
   font-family: "Fantasy" !important;
 }

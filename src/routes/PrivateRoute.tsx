@@ -5,7 +5,7 @@ export default function PrivateRoute() {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
 
   if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return <Outlet />;
