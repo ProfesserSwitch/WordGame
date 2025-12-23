@@ -1,37 +1,45 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useGameStore } from "./store/useGameStore";
 import { GameWorld } from "./components/GameWorld";
-import { GameUI } from "./components/GameUI";
 import { uiStyles } from "./styles/gameStyles";
 import { LETTER_DATA } from "./constants";
 import type { InventoryItem, DictEntry } from "./types";
 
 export default function GameApp() {
   const store = useGameStore();
-  
+
   const [selectedTargetId, setSelectedTargetId] = useState<number | null>(null);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+
+  // ✅ 1. Inventory supports nulls (Fixed 16 Slots)
+  const [inventory, setInventory] = useState<(InventoryItem | null)[]>(
+    new Array(16).fill(null)
+  );
+
   const [letterBag, setLetterBag] = useState<string[]>([]);
+
   const [selectedLetters, setSelectedLetters] = useState<(InventoryItem | null)[]>(
     new Array(6).fill(null)
   );
-  
+
   const [animFrame, setAnimFrame] = useState(0);
   const [isPlayerAttacking, setIsPlayerAttacking] = useState(false);
   const [playerAtkFrame, setPlayerAtkFrame] = useState(0);
-  
-  const [dictionary, setDictionary] = useState<DictEntry[]>([]);
+
   const [validWordInfo, setValidWordInfo] = useState<DictEntry | null>(null);
 
   const requestRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
 
+  // --- Initial Setup ---
   useEffect(() => {
     fetch("http://localhost:3000/dict")
       .then((res) => res.json())
-      .then((data) => setDictionary(data))
+      .then((data) => {
+        store.setDictionary(data);
+      })
       .catch(() => {});
-    
+
+    // Prepare letter bag
     const bag: string[] = [];
     Object.entries(LETTER_DATA).forEach(([char, info]) => {
       for (let i = 0; i < info.count; i++) bag.push(char);
@@ -39,6 +47,7 @@ export default function GameApp() {
     setLetterBag(bag);
   }, []);
 
+  // --- Animation Loop ---
   const animate = (time: number) => {
     if (lastTimeRef.current !== undefined) {
       const dt = time - lastTimeRef.current;
@@ -58,19 +67,33 @@ export default function GameApp() {
     return () => clearInterval(t);
   }, []);
 
-  useEffect(() => {
-    if (store.gameState === "BATTLE_PLAYER") {
-        const needed = 12 - inventory.length;
-        if (needed <= 0 || letterBag.length === 0) return;
-        const drawn: InventoryItem[] = [];
-        for (let i = 0; i < needed; i++) {
-          const char = letterBag[Math.floor(Math.random() * letterBag.length)];
-          drawn.push({ char, id: Math.random(), visible: true });
-        }
-        setInventory((prev) => [...prev, ...drawn]);
-    }
-  }, [store.gameState]);
+  // --- Inventory Management Logic ---
 
+  // Helper to fill inventory to 16 slots (without deleting existing items)
+  const fillInventory = (currentInv: (InventoryItem | null)[]) => {
+    if (letterBag.length === 0) return currentInv;
+
+    const newInv = [...currentInv];
+    const emptyCount = newInv.filter((x) => x === null).length;
+
+    if (emptyCount > 0) {
+      for (let i = 0; i < newInv.length; i++) {
+        if (newInv[i] === null) {
+          const char = letterBag[Math.floor(Math.random() * letterBag.length)];
+          newInv[i] = { char, id: Math.random(), visible: true };
+        }
+      }
+    }
+    return newInv;
+  };
+
+  useEffect(() => {
+    if (store.gameState === "PLAYERTURN") {
+      setInventory((prev) => fillInventory(prev));
+    }
+  }, [store.gameState, letterBag]);
+
+  // --- Word Checking Logic ---
   useEffect(() => {
     const currentString = selectedLetters
       .filter((l) => l !== null)
@@ -81,115 +104,142 @@ export default function GameApp() {
       setValidWordInfo(null);
       return;
     }
-    const found = dictionary.find(
+    const found = store.dictionary.find(
       (d) => d.word.toLowerCase() === currentString
     );
     setValidWordInfo(found || null);
-  }, [selectedLetters, dictionary]);
+  }, [selectedLetters, store.dictionary]);
+
+  // --- Actions ---
 
   const handleAttack = async () => {
     if (
       !validWordInfo ||
       store.enemies.length === 0 ||
-      store.gameState !== "BATTLE_PLAYER"
+      store.gameState !== "PLAYERTURN"
     )
       return;
 
     const aliveEnemies = store.enemies.filter((e) => e.hp > 0);
     let targetId = selectedTargetId;
-    if (!targetId || !aliveEnemies.find(e => e.id === targetId)) {
-        targetId = aliveEnemies[0]?.id;
+    if (!targetId || !aliveEnemies.find((e) => e.id === targetId)) {
+      targetId = aliveEnemies[0]?.id;
     }
     if (!targetId) return;
 
     const activeItems = selectedLetters.filter(
       (l): l is InventoryItem => l !== null
     );
-    const score = activeItems.reduce(
-      (acc, item) => acc + (LETTER_DATA[item.char]?.score || 1),
-      0
-    );
+    const chosenWord = activeItems.map((item) => item.char).join("");
 
     setValidWordInfo(null);
     setSelectedLetters(new Array(6).fill(null));
-    
+
     setIsPlayerAttacking(true);
     setPlayerAtkFrame(1);
-    setTimeout(() => setPlayerAtkFrame(2), 200);
+    setTimeout(() => setPlayerAtkFrame(2), 400);
     setTimeout(() => {
       setIsPlayerAttacking(false);
       setPlayerAtkFrame(0);
-    }, 400);
+    }, 1000);
 
-    await store.endPlayerTurn(score * 10, targetId);
+    await store.playAction(chosenWord, targetId);
   };
 
   const handleSpin = () => {
-    if (store.gameState !== "BATTLE_PLAYER" || letterBag.length === 0) return;
-    
+    if (store.gameState !== "PLAYERTURN" || letterBag.length === 0) return;
+
     setSelectedLetters(new Array(6).fill(null));
-    const newDrawn: InventoryItem[] = [];
-    for (let i = 0; i < 12; i++) {
+
+    // Reset all 16 slots
+    const newInv = new Array(16).fill(null).map(() => {
       const char = letterBag[Math.floor(Math.random() * letterBag.length)];
-      newDrawn.push({ char, id: Math.random(), visible: true });
-    }
-    setInventory(newDrawn);
+      return { char, id: Math.random(), visible: true };
+    });
+    setInventory(newInv);
   };
 
-  const handleSelectLetter = (item: InventoryItem) => {
-    const empty = selectedLetters.indexOf(null);
-    if (empty !== -1 && store.gameState === "BATTLE_PLAYER") {
-      const next = [...selectedLetters];
-      next[empty] = item;
-      setSelectedLetters(next);
-      setInventory((p) => p.filter((it) => it.id !== item.id));
+  // ✅ Fix: Select replaces slot with null instead of deleting
+  const handleSelectLetter = (item: InventoryItem, index: number) => {
+    const emptyIndex = selectedLetters.indexOf(null);
+
+    if (emptyIndex !== -1 && store.gameState === "PLAYERTURN") {
+      // 1. Add to Selected Bar
+      const nextSelected = [...selectedLetters];
+      nextSelected[emptyIndex] = item;
+      setSelectedLetters(nextSelected);
+
+      // 2. Replace Inventory slot with null
+      const nextInventory = [...inventory];
+      nextInventory[index] = null;
+      setInventory(nextInventory);
     }
   };
 
+  // ✅ Fix: Deselect puts item back into first empty slot
   const handleDeselectLetter = (index: number) => {
-      const item = selectedLetters[index];
-      if (item && store.gameState === "BATTLE_PLAYER") {
-        setInventory((prev) => [...prev, item]);
-        const next = [...selectedLetters];
-        next[index] = null;
-        setSelectedLetters(next);
+    const item = selectedLetters[index];
+    if (item && store.gameState === "PLAYERTURN") {
+      // 1. Find empty slot in Inventory
+      const emptyInvIndex = inventory.indexOf(null);
+      if (emptyInvIndex !== -1) {
+        const nextInventory = [...inventory];
+        nextInventory[emptyInvIndex] = item;
+        setInventory(nextInventory);
+
+        // 2. Remove from Selected Bar
+        const nextSelected = [...selectedLetters];
+        nextSelected[index] = null;
+        setSelectedLetters(nextSelected);
       }
+    }
   };
 
+  // ✅ Fix: Reset returns all items to empty slots
   const handleResetLetters = () => {
-      if (store.gameState === "BATTLE_PLAYER") {
-        const toReturn = selectedLetters.filter(
-          (l): l is InventoryItem => l !== null
-        );
-        setInventory((prev) => [...prev, ...toReturn]);
-        setSelectedLetters(new Array(6).fill(null));
+    if (store.gameState === "PLAYERTURN") {
+      const itemsToReturn = selectedLetters.filter(
+        (l): l is InventoryItem => l !== null
+      );
+
+      if (itemsToReturn.length === 0) return;
+
+      const nextInventory = [...inventory];
+      let itemIdx = 0;
+
+      for (let i = 0; i < nextInventory.length; i++) {
+        if (nextInventory[i] === null && itemIdx < itemsToReturn.length) {
+          nextInventory[i] = itemsToReturn[itemIdx];
+          itemIdx++;
+        }
       }
+
+      setInventory(nextInventory);
+      setSelectedLetters(new Array(6).fill(null));
+    }
   };
 
   return (
     <div style={uiStyles.wrapper}>
       <div style={uiStyles.gameContainer}>
-        
-        <GameWorld 
-            animFrame={animFrame}
-            isPlayerAttacking={isPlayerAttacking}
-            playerAtkFrame={playerAtkFrame}
-            selectedTargetId={selectedTargetId}
-            setSelectedTargetId={setSelectedTargetId}
-            validWordInfo={validWordInfo}
+        {/* GameWorld: Renders everything including Inventory UI */}
+        <GameWorld
+          animFrame={animFrame}
+          isPlayerAttacking={isPlayerAttacking}
+          playerAtkFrame={playerAtkFrame}
+          selectedTargetId={selectedTargetId}
+          setSelectedTargetId={setSelectedTargetId}
+          validWordInfo={validWordInfo}
+          
+          inventory={inventory}
+          selectedLetters={selectedLetters}
+          
+          onSelectLetter={handleSelectLetter}
+          onDeselectLetter={handleDeselectLetter}
+          onAttack={handleAttack}
+          onSpin={handleSpin}
+          onResetLetters={handleResetLetters}
         />
-
-        <GameUI 
-            inventory={inventory}
-            selectedLetters={selectedLetters}
-            validWordInfo={validWordInfo}
-            onSelectLetter={handleSelectLetter}
-            onDeselectLetter={handleDeselectLetter}
-            onAttack={handleAttack}
-            onSpin={handleSpin}
-            onResetLetters={handleResetLetters}
-        />
-
       </div>
     </div>
   );

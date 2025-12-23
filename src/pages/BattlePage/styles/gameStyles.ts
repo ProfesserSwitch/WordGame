@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 export const uiStyles: { [key: string]: CSSProperties } = {
+
   wrapper: {
     width: "100vw",
     height: "100vh",
@@ -8,14 +9,19 @@ export const uiStyles: { [key: string]: CSSProperties } = {
     justifyContent: "center",
     alignItems: "center",
     background: "#121212",
-    padding: "10px",
+    padding: "0", // ลบ padding ออกเพื่อให้คำนวณเต็มจอได้เป๊ะ
     boxSizing: "border-box",
     fontFamily: "monospace",
+    overflow: "hidden", // ป้องกัน Scrollbar โผล่
   },
   gameContainer: {
-    width: "100%",
-    maxWidth: "800px",
-    aspectRatio: "16/9",
+    // ✅ หัวใจสำคัญ: กำหนดขนาดให้ยืดหดตามจอ แต่ล็อคสัดส่วนไว้
+    height: "95vh",           // สูงเกือบเต็มจอ (เหลือขอบนิดนึงสวยๆ)
+    aspectRatio: "18/6",      // 🔒 ล็อคสัดส่วนเป็น 9:16 (เหมือนมือถือ) เหมาะกับ 50/50 Grid
+    width: "auto",            // ให้ความกว้างปรับตามความสูงและ Ratio
+    maxWidth: "100vw",        // แต่ห้ามกว้างเกินจอ
+    
+    // Flex Layout
     display: "flex",
     flexDirection: "column",
     border: "4px solid #000",
@@ -23,21 +29,28 @@ export const uiStyles: { [key: string]: CSSProperties } = {
     position: "relative",
     overflow: "hidden",
     borderRadius: "12px",
+    boxShadow: "0 0 20px rgba(0,0,0,0.5)", // เงาเพื่อให้ดูลอยออกมาจากพื้นหลัง
   },
   world: {
-    flex: 1,
+    flex: 1, // ✅ กินพื้นที่ 50% (ครึ่งบน)
     position: "relative",
     overflow: "hidden",
     borderBottom: "4px solid #000",
+    background: "#87CEEB",
+    width: "100%", // เต็มความกว้างคอนเทนเนอร์
   },
-  background: {
-    position: "absolute",
-    bottom: 0,
+  panel: {
+    flex: 1, // ✅ กินพื้นที่ 50% (ครึ่งล่าง)
+    background: "#2c2c2c",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center", // จัดทุกอย่างให้อยู่กลาง Panel
+    padding: "10px",
+    gap: "10px",
+    borderTop: "4px solid #000",
+    position: "relative",
     width: "100%",
-    height: "40px",
-    backgroundRepeat: "repeat-x",
-    backgroundSize: "40px 40px",
-    zIndex: 5,
   },
   entity: {
     position: "absolute",
@@ -57,19 +70,6 @@ export const uiStyles: { [key: string]: CSSProperties } = {
     zIndex: 15,
     border: "2px solid #fff",
     boxShadow: "0 0 10px #ff4500",
-  },
-  hpBarBg: {
-    position: "absolute",
-    top: -12,
-    width: "56px",
-    height: "6px",
-    background: "#333",
-    border: "1.5px solid #000",
-  },
-  hpBarFill: {
-    height: "100%",
-    background: "#ff4d4d",
-    transition: "width 0.3s ease",
   },
   targetArrow: {
     position: "absolute",
@@ -108,67 +108,71 @@ export const uiStyles: { [key: string]: CSSProperties } = {
     cursor: "pointer",
     marginTop: "20px",
   },
-  panel: {
-    background: "#2c2c2c",
-    display: "flex",
-    padding: "12px",
-    gap: "12px",
-    borderTop: "4px solid #000",
-  },
-  wordSection: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  },
   actionRow: {
     display: "flex",
     gap: "10px",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  slotContainer: { display: "flex", gap: "6px" },
-  slot: {
-    width: "45px",
-    height: "45px",
-    background: "#444",
-    border: "2px solid #000",
-    borderRadius: "8px",
+
+  wordSection: {
+    // flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  
+  },
+  inventory: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)", // 4 คอลัมน์
+    gridTemplateRows: "repeat(4, 1fr)",    // ✅ เพิ่ม: บังคับ 4 แถวเสมอ
+    padding: "10px 10px",
+    background: "#3e2723",
+    border: "4px solid #d4af37",
+    borderRadius: "5px",
+    boxShadow: "inset 0 0 15px rgba(0,0,0,0.8), 0 5px 15px rgba(0,0,0,0.5)",
+    margin: "0 auto",
+    width: "fit-content",
+  },
+  emptySlot: {
+    width: "30px",
+    height: "30px",
+    background: "rgba(0, 0, 0, 0.3)", // สีดำจางๆ
+    border: "2px inset #2a1a10",     // ขอบแบบยุบลงไป (Inset)
+    borderRadius: "6px",
+    boxShadow: "inset 1px 1px 4px rgba(0,0,0,0.5)", // เงาข้างในให้ดูเป็นหลุม
   },
   letterCard: {
-    width: "42px",
-    height: "42px",
-    background: "#f2a654",
-    border: "2px solid #000",
+    width: "30px",  // ปรับขนาดให้พอดีมือ
+    height: "30px",
+    // ปรับสีให้เหมือนกระเบื้องตัวอักษร (สีครีมๆ)
+    background: "#fdf5e6", // OldLace color
+    border: "2px solid #8b4513", // ขอบน้ำตาล
+    borderBottomWidth: "5px", // ขอบล่างหนาหน่อยให้ดูเป็นก้อน 3D
+    borderRadius: "6px",
+    
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    fontWeight: "bold",
+    fontWeight: "900", // ตัวหนาเข้ม
+    fontSize: "15px",
+    color: "#3e2723", // ตัวหนังสือสีน้ำตาลเข้ม
+    
     cursor: "pointer",
     position: "relative",
-    borderRadius: "4px",
-    color: "#000",
+    userSelect: "none",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
   },
-  scoreTag: { position: "absolute", bottom: 1, right: 2, fontSize: "8px" },
-  inventory: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "6px",
-    background: "#111",
-    padding: "10px",
-    borderRadius: "8px",
-    minHeight: "100px",
-    border: "2px solid #444",
+
+  scoreTag: { 
+    position: "absolute", 
+    bottom: "2px", 
+    right: "3px", 
+    fontSize: "10px",
+    color: "#8b4513", // ปรับสีแต้มให้เข้ากัน
+    fontWeight: "bold"
   },
-  actionBtn: {
-    padding: "8px 12px",
-    border: "3px solid #000",
-    fontWeight: "bold",
-    borderRadius: "6px",
-    fontSize: "12px",
-    cursor: "pointer",
-    minWidth: "70px",
-  },
+
   meaningTag: {
     position: "absolute",
     bottom: "50%",
