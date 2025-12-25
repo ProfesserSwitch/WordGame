@@ -1,11 +1,14 @@
 export const MAX_PLAYER_HP = 100;
 export const PLAYER_ATK = 5;
 
-export const FIXED_Y = 200; // จุดที่ผู้เล่นและศัตรูยืนในแนวตั้ง
-export const PLAYER_X_POS = 15; // จุดที่ผู้เล่นยืนในแนวนอน
+export const FIXED_Y = 280; // จุดที่ผู้เล่นและศัตรูยืนในแนวตั้ง
+export const PLAYER_X_POS = 10; // จุดที่ผู้เล่นยืนในแนวนอน
 
 export const DISPLAY_NORMAL = 16 * 3.5; 
 export const DISPLAY_WIDE = 32 * 3.5;
+
+export const VOWELS = ['A', 'E', 'I', 'O', 'U'];
+export const HARD_LETTERS = ['X', 'Z', 'J', 'Q', 'K', 'V', 'W']; // เพิ่มตามความเหมาะสม
 
 export const LETTER_DATA: { [key: string]: { count: number; score: number } } = {
   A: { count: 3, score: 1 },

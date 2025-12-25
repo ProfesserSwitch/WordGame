@@ -1,367 +1,271 @@
-import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+// GameWorld.tsx
+
+import React, { useRef, useState, useMemo } from "react";
+import { Reorder, motion, AnimatePresence } from "framer-motion";
 import { useGameStore } from "../store/useGameStore";
 import { uiStyles } from "../styles/gameStyles";
-import {
-  FIXED_Y,
-  PLAYER_X_POS,
-  DISPLAY_WIDE,
-  DISPLAY_NORMAL,
-  LETTER_DATA,
-} from "../constants";
+import { LETTER_DATA } from "../constants";
+import type { InventoryItem, DictEntry, SkillData } from "../types";
 
-import type { InventoryItem, DictEntry } from "../types";
+// Components
+import { InventorySlot } from "./InventorySlot";
+import { Projectile } from "./Projectile";
+import { SkillBar } from "./SkillBar"; 
+import { PlayerEntity } from "./PlayerEntity";
+import { EnemyEntity } from "./EnemyEntity";
 
-// Assets Import
-import walkPlayer1 from "../../../assets/image/player/walk/1.png";
-import walkPlayer2 from "../../../assets/image/player/walk/2.png";
-import idlePlayer from "../../../assets/image/player/walk/1.png";
-import attackPlayer1 from "../../../assets/image/player/attack/1.png";
-import attackPlayer2 from "../../../assets/image/player/attack/2.png";
+// Assets
 import walkEnemy1 from "../../../assets/image/enemy/rat/walk/1.png";
 import walkEnemy2 from "../../../assets/image/enemy/rat/walk/2.png";
 import idleEnemy from "../../../assets/image/enemy/rat/walk/1.png";
 import attackEnemy1 from "../../../assets/image/enemy/rat/attack/1.png";
 import attackEnemy2 from "../../../assets/image/enemy/rat/attack/2.png";
-import groundImg from "../../../assets/image/tiles/grass.png";
-import { HpBar } from "./HpBar";
 
 interface GameWorldProps {
   animFrame: number;
   isPlayerAttacking: boolean;
   playerAtkFrame: number;
-  selectedTargetId: number | null;
-  setSelectedTargetId: (id: number) => void;
-  validWordInfo: DictEntry | null;
+  
+  // ✅ Props สำหรับระบบ Targeting
+  onEnemyClick: (id: number | null) => void; 
+  castingSkill: SkillData | null;
+  selectedTargets: number[];      
 
+  validWordInfo: DictEntry | null;
   inventory: (InventoryItem | null)[];
   selectedLetters: (InventoryItem | null)[];
+  playerInventorySize: number;
+
   onSelectLetter: (item: InventoryItem, index: number) => void;
   onDeselectLetter: (index: number) => void;
-  onAttack: () => void;
-  onSpin: () => void;
+  onReorder: (newOrder: InventoryItem[]) => void;
   onResetLetters: () => void;
+
+  // ✅ Generic Handler
+  onSkillClick: (skill: SkillData) => void;
+  onEndTurn: () => void;
+  
+  currentWordLength: number;
 }
 
 export const GameWorld: React.FC<GameWorldProps> = ({
   animFrame,
   isPlayerAttacking,
   playerAtkFrame,
-  selectedTargetId,
-  setSelectedTargetId,
+  
+  onEnemyClick,
+  castingSkill,
+  selectedTargets,
+
   validWordInfo,
   inventory,
   selectedLetters,
-  onSelectLetter,
+  playerInventorySize,
+
+  onSelectLetter,  
   onDeselectLetter,
-  onAttack,
-  onSpin,
+  onSkillClick,
+  onEndTurn,
+  onReorder,
   onResetLetters,
+  currentWordLength,
 }) => {
   const store = useGameStore();
-  const gameState = useGameStore((s) => s.gameState);
+  // Filter เอาเฉพาะช่องที่มีตัวอักษรจริงเพื่อแสดงใน Reorder Group
+  const activeSelectedItems = selectedLetters.filter((item): item is InventoryItem => item !== null);
+  const constraintsRef = useRef(null);
 
-  const handleAnimComplete = () => {
-    store.notifyAnimationComplete();
+  // --- State สำหรับ Tooltip ---
+  const [hoveredEnemyId, setHoveredEnemyId] = useState<number | null>(null);
+
+  // ✅ คำนวณคะแนนรวมของคำปัจจุบัน (เพื่อเอาไปโชว์ดาเมจใน Tooltip)
+  const currentWordScore = useMemo(() => {
+    return activeSelectedItems.reduce((sum, item) => sum + (LETTER_DATA[item.char]?.score || 0), 0);
+  }, [activeSelectedItems]);
+
+  // ✅ Helper: คำนวณโอกาสโดน (Generic)
+  const getHitChance = (enemyAC: number) => {
+      if (!castingSkill) return 0;
+      
+      // Auto Hit
+      if (castingSkill.isAutoHit) return 100;
+
+      // Logic: D20 + Score + Bonus >= AC
+      // (สมมติใช้ Score ของคำมาช่วย hit chance ด้วย หรือจะใช้ Length ตามเดิมก็ได้)
+      // *แก้เป็นใช้ Word Score + Length ตามความเหมาะสมของเกมดีไซน์*
+      const bonus = currentWordScore + castingSkill.hitChanceBonus; 
+      const minRoll = enemyAC - bonus;
+      
+      if (minRoll <= 1) return 100; // roll 1 always miss? (optional) usually 1 is auto fail, but let's say min req is low
+      if (minRoll > 20) return 0;   // need > 20, impossible
+
+      const winningOutcomes = 20 - minRoll + 1;
+      return Math.round((winningOutcomes / 20) * 100);
   };
+
+  // ✅ Helper: คำนวณดาเมจ
+  const getDamageInfo = () => {
+      if (!castingSkill) return "0";
+      
+      // สูตร: Score * BasePower
+      const estimatedDmg = Math.floor(currentWordScore * castingSkill.basePower) || 1;
+      
+      if (castingSkill.effectType === 'DAMAGE') {
+          return `~${estimatedDmg}`; 
+      }
+      return "-";
+  };
+
+  const hoveredEnemy = store.enemies.find(e => e.id === hoveredEnemyId);
 
   return (
     <>
-      {/* --- ส่วนแสดงผล World (ด้านบน) --- */}
-      <div style={uiStyles.world}>
-        {/* BACKGROUND */}
-        <div
-          style={{
-            ...uiStyles.background,
-            backgroundImage: `url(${groundImg})`,
-            backgroundPositionX:
-              store.gameState === "ADVANTURE"
-                ? `-${store.distance * 10}px`
-                : "0px",
-          }}
-        />
+      {/* --- WORLD VIEW --- */}
+      <div style={{ flex: 1, position: "relative", overflow: "hidden", borderBottom: "4px solid #000", background: "#000000ff", width: "100%" }}>
+        
+        {/* Background Layer */}
+        <div style={{ backgroundPositionX: store.gameState === "ADVANTURE" ? `-${store.distance * 10}px` : "0px" }} />
 
-        {/* Floating Words (คำที่เลือกแล้วลอยบนฟ้า) */}
-        {selectedLetters && (
-          <div
-            style={{
-              position: "absolute",
-              top: "25%",
-              left: "50%",
-              transform: "translateX(-50%)",
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              gap: "8px",
-              zIndex: 50,
-              pointerEvents: "none",
-            }}
+        {/* Selected Letters (Reorder Zone) */}
+        <div ref={constraintsRef} style={{ position: "absolute", top: "25%", left: "50%", transform: "translateX(-50%)", zIndex: 100, width: "320px", height: "80px", display: "flex", justifyContent: "center", alignItems: "center", pointerEvents: "none" }}>
+          <Reorder.Group 
+            axis="x" 
+            values={activeSelectedItems} 
+            onReorder={onReorder} 
+            style={{ display: "flex", flexDirection: "row", gap: "8px", listStyle: "none", padding: 0, margin: 0, pointerEvents: "auto" }}
           >
-            {selectedLetters.map((item, i) =>
-              item && (
-                <motion.div
-                  key={item.id}
-                  layout
-                  initial={{ scale: 0, y: 50, opacity: 0 }}
-                  animate={{ scale: 1, y: 0, opacity: 1 }}
-                  exit={{ scale: 0, opacity: 0 }}
-                  whileHover={{
-                    scale: 1.2,
-                    y: -10,
-                    zIndex: 100,
-                    transition: { type: "spring", stiffness: 400, damping: 10 },
-                  }}
-                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                  onClick={() => onDeselectLetter(i)}
-                  style={{
-                    background: "#f2a654",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    fontWeight: "bold",
-                    borderRadius: "4px",
-                    color: "#000",
-                    width: "40px",
-                    height: "40px",
-                    fontSize: "20px",
-                    border: "3px solid #000",
-                    boxShadow: "0 6px 0 #b37400, 0 10px 10px rgba(0,0,0,0.3)",
-                    cursor: "pointer",
-                    pointerEvents: "auto",
-                    position: "relative",
-                  }}
-                >
-                  {item.char}
-                  <span
-                    style={{
-                      position: "absolute",
-                      bottom: "2px",
-                      right: "4px",
-                      fontSize: "10px",
-                      fontWeight: "bold",
-                      opacity: 0.7,
-                    }}
+            <AnimatePresence initial={false}>
+              {activeSelectedItems.map((item) => {
+                const originalIndex = selectedLetters.findIndex(s => s?.id === item.id);
+                return (
+                  <Reorder.Item 
+                    key={item.id} 
+                    value={item} 
+                    dragConstraints={constraintsRef} 
+                    dragElastic={0} 
+                    dragMomentum={false} 
+                    layout="position" 
+                    initial={{ scale: 0.8, opacity: 0 }} 
+                    animate={{ scale: 1, opacity: 1 }} 
+                    exit={{ scale: 0, opacity: 0 }} 
+                    onTap={() => originalIndex !== -1 && onDeselectLetter(originalIndex)} 
+                    style={{ background: "#f2a654", width: "44px", height: "44px", display: "flex", justifyContent: "center", alignItems: "center", border: "3px solid #000", fontWeight: "bold", fontSize: "22px", cursor: "grab", boxShadow: "0 4px 0 #b37400" }}
                   >
-                    {LETTER_DATA[item.char]?.score}
-                  </span>
-                </motion.div>
-              )
-            )}
-          </div>
-        )}
-
-        {/* PLAYER Entity */}
-        <div
-          style={{
-            position: "absolute",
-            width: "56px",
-            height: "56px",
-            transform: "translateY(-100%)",
-            left: `${PLAYER_X_POS}%`,
-            top: FIXED_Y,
-            zIndex: 10,
-          }}
-        >
-          <HpBar
-            hp={store.playerStat.hp}
-            max={store.playerStat.max_hp}
-            color="#4dff8bff"
-          />
-
-          <AnimatePresence>
-            {store.playerShoutText && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.5 }}
-                animate={{ opacity: 1, y: -40, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.5 }}
-                style={{
-                  position: "absolute",
-                  top: "-60px",
-                  transform: "translateX(-50%)",
-                  backgroundColor: "white",
-                  color: "#333",
-                  padding: "4px 12px",
-                  borderRadius: "12px",
-                  fontSize: "14px",
-                  fontWeight: "bold",
-                  whiteSpace: "nowrap",
-                  border: "2px solid #000",
-                  zIndex: 1000,
-                  boxShadow: "0 4px 6px rgba(0,0,0,0.3)",
-                }}
-              >
-                {store.playerShoutText}
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: "-8px",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    borderLeft: "8px solid transparent",
-                    borderRight: "8px solid transparent",
-                    borderTop: "8px solid #000",
-                  }}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {isPlayerAttacking ? (
-            <motion.div
-              key="player-attack"
-              initial={{ scale: 1 }}
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 0.4 }}
-              onAnimationComplete={handleAnimComplete}
-              style={{
-                ...uiStyles.spriteLayer,
-                backgroundImage: `url(${
-                  playerAtkFrame === 1 ? attackPlayer1 : attackPlayer2
-                })`,
-                width: DISPLAY_WIDE,
-                height: DISPLAY_NORMAL,
-                backgroundSize: "100% 100%",
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                ...uiStyles.spriteLayer,
-                backgroundImage: `url(${
-                  store.gameState === "ADVANTURE"
-                    ? animFrame === 0
-                      ? walkPlayer1
-                      : walkPlayer2
-                    : idlePlayer
-                })`,
-                width: DISPLAY_NORMAL,
-                height: DISPLAY_NORMAL,
-                backgroundSize: "100% 100%",
-              }}
-            />
-          )}
+                    {item.char}
+                  </Reorder.Item>
+                );
+              })}
+            </AnimatePresence>
+          </Reorder.Group>
         </div>
 
-        {/* ENEMIES Entities */}
+        {/* Player Entity */}
+        <PlayerEntity store={store} isPlayerAttacking={isPlayerAttacking} playerAtkFrame={playerAtkFrame} animFrame={animFrame} onAnimationComplete={() => store.notifyAnimationComplete()} />
+
+        {/* Enemies Layer */}
         <AnimatePresence>
-          {store.enemies
-            .filter((e) => e.hp > 0)
-            .map((en, i) => {
-              const isAtk = en.atkFrame > 0;
-              let sprite = isAtk
-                ? en.atkFrame === 2
-                  ? attackEnemy2
-                  : attackEnemy1
-                : store.gameState === "ADVANTURE"
-                ? animFrame === 0
-                  ? walkEnemy1
-                  : walkEnemy2
-                : idleEnemy;
-
-              const alive = store.enemies.filter((e) => e.hp > 0);
-              const currentActiveTargetId =
-                selectedTargetId && alive.find((a) => a.id === selectedTargetId)
-                  ? selectedTargetId
-                  : alive[0]?.id;
-
-              const isTargeted = currentActiveTargetId === en.id;
-
+          {store.enemies.filter((en) => en.hp > 0).map((en, i) => {
+              const selectCount = selectedTargets.filter(id => id === en.id).length;
+              
               return (
-                <motion.div
+                <EnemyEntity
                   key={en.id}
-                  initial={{ left: `${en.x}%`, opacity: 1 }}
-                  animate={{ left: `${en.x}%` }}
-                  transition={{ type: "tween", duration: 0.2 }}
-                  exit={{
-                    opacity: 0,
-                    x: 100,
-                    y: -150,
-                    rotate: 180,
-                    transition: { duration: 0.7, ease: "easeOut" },
+                  enemy={en}
+                  index={i}
+                  animFrame={animFrame}
+                  gameState={store.gameState}
+                  isTargeted={selectCount > 0} 
+                  
+                  onSelect={onEnemyClick}
+                  
+                  // ✅ Tooltip Hooks
+                  onHover={(isHover) => setHoveredEnemyId(isHover ? en.id : null)}
+                  
+                  selectionCount={selectCount}
+                  assets={{ walkEnemy1, walkEnemy2, idleEnemy, attackEnemy1, attackEnemy2 }}
+                  
+                  style={{ 
+                    cursor: castingSkill ? 'crosshair' : 'help', 
+                    filter: (castingSkill && hoveredEnemyId === en.id) || selectCount > 0 ? 'drop-shadow(0 0 5px red)' : 'none' 
                   }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedTargetId(en.id);
-                  }}
-                  style={{
-                    ...uiStyles.entity,
-                    top: FIXED_Y,
-                    zIndex: 100 - i,
-                    filter: isTargeted ? "drop-shadow(0 0 8px yellow)" : "none",
-                    cursor: "crosshair",
-                  }}
-                >
-                  <AnimatePresence>
-                    {en.shoutText && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.5 }}
-                        animate={{ opacity: 1, y: -40, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.5 }}
-                        style={{
-                          position: "absolute",
-                          top: "-60px",
-                          transform: "translateX(-50%)",
-                          backgroundColor: "white",
-                          color: "#333",
-                          padding: "4px 12px",
-                          borderRadius: "12px",
-                          fontSize: "14px",
-                          fontWeight: "bold",
-                          whiteSpace: "nowrap",
-                          border: "2px solid #000",
-                          zIndex: 1000,
-                          boxShadow: "0 4px 6px rgba(0,0,0,0.3)",
-                        }}
-                      >
-                        {en.shoutText}
-                        <div
-                          style={{
-                            position: "absolute",
-                            bottom: "-8px",
-                            left: "50%",
-                            transform: "translateX(-50%)",
-                            borderLeft: "8px solid transparent",
-                            borderRight: "8px solid transparent",
-                            borderTop: "8px solid #000",
-                          }}
-                        />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  <div
-                    style={{
-                      ...uiStyles.spriteLayer,
-                      backgroundImage: `url(${sprite})`,
-                      width: isAtk ? DISPLAY_WIDE : DISPLAY_NORMAL,
-                      height: DISPLAY_NORMAL,
-                      backgroundSize: "100% 100%",
-                      transform: "scaleX(-1)",
-                      marginLeft: isAtk ? `-${DISPLAY_NORMAL}px` : "0px",
-                    }}
-                  />
-
-                  <HpBar hp={en.hp} max={en.maxHp} color="#ff4d4d" />
-
-                  {isTargeted && <div style={uiStyles.targetArrow}>▼</div>}
-                </motion.div>
+                />
               );
-            })}
+          })}
         </AnimatePresence>
 
-        {/* Valid Word Meaning & Effects */}
+        {/* ✅ INTELLIGENT TOOLTIP SYSTEM */}
+        <AnimatePresence>
+            {hoveredEnemy && (
+                <motion.div
+                    key="tooltip"
+                    initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    style={{
+                        position: 'absolute',
+                        left: `${hoveredEnemy.x}%`, 
+                        top: '35%', 
+                        transform: 'translate(-50%, -100%)',
+                        background: 'rgba(0, 0, 0, 0.95)',
+                        border: castingSkill ? '2px solid #ff4d4d' : '2px solid #48dbfb', 
+                        borderRadius: '8px',
+                        padding: '10px',
+                        zIndex: 9999,
+                        pointerEvents: 'none',
+                        color: '#fff',
+                        textAlign: 'center',
+                        minWidth: '160px',
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.5)'
+                    }}
+                >
+                    {castingSkill ? (
+                        // 🔴 MODE: TARGETING (กำลังเล็งสกิล)
+                        <>
+                            <div style={{ fontSize: '14px', marginBottom: '4px', color: '#ffd700', fontWeight: 'bold' }}>
+                                HIT CHANCE: <span style={{ color: getHitChance(hoveredEnemy.ac) >= 50 ? '#0f0' : '#f00' }}>{getHitChance(hoveredEnemy.ac)}%</span>
+                            </div>
+                            <div style={{ fontSize: '12px', fontWeight: 'bold' }}>
+                                DMG: {getDamageInfo()}
+                            </div>
+                        </>
+                    ) : (
+                        // 🔵 MODE: INSPECT (ดูข้อมูลปกติ)
+                        <>
+                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#48dbfb', textTransform: 'uppercase', marginBottom: '8px', borderBottom: '1px solid #555', paddingBottom: '4px' }}>
+                                {hoveredEnemy.name}
+                            </div>
+                            <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between', padding: '2px 5px' }}>
+                                <span style={{color:'#aaa'}}>HP:</span>
+                                <span style={{ color: '#ff4d4d', fontWeight:'bold' }}>{hoveredEnemy.hp}/{hoveredEnemy.maxHp}</span>
+                            </div>
+                            <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between', padding: '2px 5px' }}>
+                                <span style={{color:'#aaa'}}>ATK:</span>
+                                <span style={{ color: '#ff9f43', fontWeight:'bold' }}>{hoveredEnemy.atk_power_min}-{hoveredEnemy.atk_power_max}</span>
+                            </div>
+                            <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between', padding: '2px 5px' }}>
+                                <span style={{color:'#aaa'}}>AC (Def):</span>
+                                <span style={{ color: '#ffd700', fontWeight:'bold' }}>{hoveredEnemy.ac}</span>
+                            </div>
+                        </>
+                    )}
+                </motion.div>
+            )}
+        </AnimatePresence>
+
+        {/* Word Meaning Popup */}
         <AnimatePresence>
           {validWordInfo && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              style={uiStyles.meaningTag}
-            >
-              {validWordInfo.meaning}
-            </motion.div>
+            <div style={{ position: "absolute", top: "50%", left: 0, width: "100%", display: "flex", justifyContent: "center", zIndex: 999 }}>
+              <div style={{ height: "65px" }} /> 
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 0.85, y: 0 }} exit={{ opacity: 0 }} style={{ background: "rgba(244, 228, 188)", border: "2px solid #5c4033", padding: "10px 25px", borderRadius: "4px", textAlign: "center" }}>
+                <span style={{ fontSize: "11px", color: "#8d6e63", fontWeight: "bold", textTransform: "uppercase" }}>— Meaning —<br/></span>
+                <span style={{ fontSize: "16px", color: "#3e2723", fontWeight: "bold" }}>{validWordInfo.meaning}</span>
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>
 
+        {/* Damage Popups */}
         <AnimatePresence>
           {store.damagePopups.map((p) => (
             <motion.div
@@ -370,200 +274,63 @@ export const GameWorld: React.FC<GameWorldProps> = ({
               onAnimationComplete={() => store.removePopup(p.id)}
               style={{
                 ...uiStyles.damageText,
-                color: p.isPlayer
-                  ? "#ff4d4d"
-                  : p.value === 0
-                  ? "#00ffff"
-                  : "#ffff00",
+                color: p.value === -1 ? "#bbb" : (p.isPlayer ? "#ff4d4d" : p.value === 0 ? "#00ffff" : "#ffff00"),
                 left: `${p.x}%`,
               }}
             >
-              {p.value === 0 ? "CHARGE" : p.value}
+              {p.value === -1 ? "MISS" : (
+                p.value === 0 && p.isPlayer 
+                ? "BLOCK" 
+                : p.isPlayer === false && p.value > 0 // Skill Shield Check
+                ? `+${p.value} SHIELD`
+                : p.value 
+              )}
             </motion.div>
           ))}
         </AnimatePresence>
 
-        {store.projectiles.map((p) => (
-          <div
-            key={p.id}
-            style={{
-              ...uiStyles.fireball,
-              left: `${p.x}%`,
-              top: p.y + 20,
-              width: "18px",
-              height: "18px",
-            }}
-          />
-        ))}
-
+        {/* Projectiles */}
+        {store.projectiles.map(p => <Projectile key={p.id} data={p} />)}
+        
+        {/* Game Over Screen */}
         {store.gameState === "OVER" && (
-          <div style={uiStyles.overlay}>
-            <h1 style={{ color: "#ff4d4d" }}>GAME OVER</h1>
-            <button
-              onClick={() => {
-                store.reset();
-                setSelectedTargetId(0);
-              }}
-              style={uiStyles.restartBtn}
-            >
-              RESTART
-            </button>
-          </div>
+             <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", zIndex: 100 }}>
+                <h1 style={{ color: "#ff4d4d" }}>GAME OVER</h1>
+                <button onClick={() => { store.reset(); onResetLetters(); }} style={{ padding: "12px 24px", background: "#ffeb3b", border: "4px solid #000", fontWeight: "bold", cursor: "pointer", marginTop: "20px" }}>RESTART</button>
+             </div>
         )}
       </div>
 
-      {/* --- ส่วน Panel ด้านล่าง (Inventory & Buttons) --- */}
-      <div
-        style={{
-          ...uiStyles.panel,
-          flexDirection: "column", // เรียงแนวตั้ง: Text -> Inventory -> Buttons
-          alignItems: "center",
-          position: "relative", // เพื่อให้ Text ใช้ Absolute ได้
-        }}
-      >
-        {/* 1. Status Text (มุมซ้ายบนของ Panel) */}
-        <div
-          style={{
-            position: "absolute",
-            top: "10px",
-            left: "15px",
-            color: "#fff",
-            fontWeight: "bold",
-            fontSize: "14px",
-            // textShadow: "1px 1px 0px #000",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-        >
-          {/* สถานะเกม */}
-          {gameState === "PLAYERTURN" ? (
-            <>
-              <div
-                style={{
-                  width: "10px",
-                  height: "10px",
-                  borderRadius: "50%",
-                  background: "#4ade80",
-                  boxShadow: "0 0 5px #4ade80",
-                }}
-              />
-              <span style={{ color: "#eee" }}>YOUR TURN</span>
-            </>
-          ) : gameState === "ACTION" ? (
-            <>
-              <span style={{ color: "#ffd700" }}>⏳ PROCESSING...</span>
-            </>
-          ) : gameState === "ENEMYTURN" ? (
-            <>
-              <div
-                style={{
-                  width: "10px",
-                  height: "10px",
-                  borderRadius: "50%",
-                  background: "#ff4d4d",
-                }}
-              />
-              <span style={{ color: "#ff4d4d" }}>ENEMY TURN</span>
-            </>
-          ) : gameState === "ADVANTURE" ? (
-            <span style={{ color: "#4ade80" }}>EXPLORING...</span>
-          ) : (
-            ""
-          )}
+      {/* --- BOTTOM PANEL --- */}
+      <div style={{ flex: 1, justifyContent: "center", position: "relative", width: "100%", background: "#1a120b", borderTop: "4px solid #5c4033", display: "flex", flexDirection: "row", alignItems: "stretch", gap: "20px", padding: "10px", height: "280px" }}>
+        
+        {/* 1. Inventory (Left Side - Wide) */}
+        <div id="inventory" style={{ flex: 2, maxWidth: "600px", background: "linear-gradient(180deg, #3d2b1f 0%, #2e2019 100%)", borderRadius: "12px", border: "3px solid #eebb55", display: "flex", flexDirection: "column", alignItems: "center", padding: "8px", boxShadow: "inset 0 0 30px rgba(0,0,0,0.8)" }}>
+          <div style={{ color: "#eebb55", fontSize: "12px", fontWeight: 900, letterSpacing: "2px", borderBottom: "2px solid #eebb55", width: "95%", textAlign: "center", paddingBottom: "5px", marginBottom: "5px" }}>INVENTORY</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", width: "100%" }}>
+            <motion.div layout style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gridTemplateRows: "repeat(4, 1fr)", padding: "10px", background: "#3e2723", border: "4px solid #d4af37", borderRadius: "5px", height: "90%", width: "95%" }}>
+              {inventory.map((item, index) => (
+                <InventorySlot key={`slot-${index}`} item={item ?? undefined} index={index} onSelect={onSelectLetter} isLocked={index >= playerInventorySize} />
+              ))}
+            </motion.div>
+          </div>
         </div>
 
-        {/* 2. Inventory (ตรงกลาง) */}
-        <div style={uiStyles.wordSection}>
-          <motion.div layout style={uiStyles.inventory}>
-            {inventory.map((item, index) => (
-              <div
-                key={`slot-${index}`}
-                style={{
-                  ...uiStyles.emptySlot,
-                  position: "relative",
-                }}
-              >
-                <AnimatePresence>
-                  {item && (
-                    <motion.div
-                      key={item.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0 }}
-                      whileHover={{
-                        scale: 1.1,
-                        zIndex: 100,
-                      }}
-                      onClick={() => onSelectLetter(item, index)}
-                      style={{
-                        ...uiStyles.letterCard,
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                      }}
-                    >
-                      {item.char}
-                      <span style={uiStyles.scoreTag}>
-                        {LETTER_DATA[item.char]?.score}
-                      </span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-
-        {/* 3. Button Row (ด้านล่าง Inventory) */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            width: "100%",
-          }}
-        >
-          {/* ปุ่ม Attack อยู่กลาง (ปรับให้เด่นขึ้นนิดหน่อย) */}
-          <button
-            disabled={!validWordInfo || gameState !== "PLAYERTURN"}
-            onClick={onAttack}
-            style={{
-              fontWeight: "bold",
-              borderRadius: "6px",
-              minWidth: "70px",
-              padding: "5px 30px", 
-              fontSize: "16px",
-              background:
-                validWordInfo && gameState === "PLAYERTURN"
-                  ? "#ff4500" 
-                  : "#444",
-              color: "#fff",
-              border: "2px solid #fff",
-              boxShadow: "0 4px 0 #222",
-              cursor: "pointer",
-              transition: "transform 0.1s",
-            }}
-          >
-            ATTACK
-          </button>
-
-          {/* ปุ่ม Spin อยู่ขวา */}
-          {/* <button
-            disabled={gameState !== "PLAYERTURN"}
-            onClick={onSpin}
-            style={{
-              ...uiStyles.actionBtn,
-              padding: "10px 20px",
-              background: gameState === "PLAYERTURN" ? "#9c27b0" : "#444",
-              color: "#fff",
-              boxShadow: "0 4px 0 #222",
-              cursor: "pointer",
-            }}
-          >
-            SPIN
-          </button> */}
+        {/* 2. Skill Bar (Right Side) */}
+        <div style={{ flex: 1, maxWidth: "300px", minWidth: "260px" }}>
+          <SkillBar
+            playerStat={store.playerStat}
+            gameState={store.gameState}
+            validWordInfo={validWordInfo}
+            currentWordLength={currentWordLength}
+            
+            // ✅ Lock Skill Bar เมื่อกำลังเล็ง
+            targetingMode={!!castingSkill} 
+            
+            // ✅ ส่งแค่ Generic Handlers
+            onSkillClick={onSkillClick}
+            onEndTurn={onEndTurn}
+          />
         </div>
       </div>
     </>

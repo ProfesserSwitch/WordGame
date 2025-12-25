@@ -1,35 +1,56 @@
-export type Enemy = {
+export interface Enemy {
   id: number;
-  name: string;       
+  x: number;
+  name: string;
   hp: number;
   maxHp: number;
-  // ระบบการโจมตีและคำศัพท์
-  level: "A1" | "A2" | "B1" | "B2"; // ระดับของศัตรูเพื่อดึงคำศัพท์
-  atk_power_min: number;  // จำนวนคำต่ำสุดที่สุ่มได้
-  atk_power_max: number;  // จำนวนคำสูงสุดที่สุ่มได้
-  // ระบบ Cooldown (เสียเทิร์นหลังโจมตี)
-  cooldown: number;       // ค่า Cooldown พื้นฐาน (เช่น 2 เทิร์น)
-  current_cooldown: number; // ตัวนับ Cooldown ปัจจุบัน (ถ้า > 0 คือยังโจมตีไม่ได้)
-  // ตำแหน่งและอนิเมชั่น
-  x: number;
-  targetX: number;
-  atkFrame: number;       // 0: ปกติ, 1: เตรียม, 2: ฟาด
-  // สถานะเพิ่มเติม (Optional)
-  shoutText?: string;     // เก็บคำที่สุ่มได้เพื่อเอาไปแสดงบนหัวศัตรู
-};
-export type Projectile = {
+  ac: number; // ✅ เพิ่ม Armor Class
+  atk_power_min: number;
+  atk_power_max: number;
+  cooldown: number;
+  current_cooldown: number;
+  level: string;
+  atkFrame: number;
+  shoutText?: string;
+}
+
+export interface PlayerStat {
+  max_hp: number;
+  hp: number;
+  shield: number;
+  atk: number;
+  def: number;
+  // ✅ เพิ่ม Action Points
+  max_ap: number;
+  ap: number;     // Action Points
+  max_bap: number;
+  bap: number;    // Bonus Action Points
+}
+
+export interface Projectile {
   id: number;
   x: number;
   y: number;
+  startY?: number;
+  phase?: number;
   damage: number;
   targetId: number;
-};
-export type InventoryItem = {
-  id: number;
   char: string;
-  visible: boolean; // อันเดิมที่มีอยู่
-  isSelected?: boolean; // ✅ เพิ่มสถานะนี้: ถ้า true คือถูกเลือกไปแล้ว (ช่องนี้จะว่าง)
-};
+  
+  // New Props
+  scale?: number;
+  visual?: 'FIREBALL' | 'V_SHAPE' | 'NONE'; // รูปแบบภาพ
+  movementType?: 'straight' | 'wavy';       // รูปแบบการวิ่ง
+  rotation?: number;                        // องศาการหมุน
+  isMiss?: boolean;
+}
+
+export interface InventoryItem {
+  char: string;
+  id: number;
+  visible: boolean;
+  originalIndex: number; // ✅ เพิ่มเพื่อเก็บตำแหน่งเริ่มต้นใน Inventory
+}
 export type DamagePopup = {
   id: number;
   x: number;
@@ -37,28 +58,68 @@ export type DamagePopup = {
   value: number;
   isPlayer?: boolean;
 };
+
 export type DictEntry = { 
   word: string; 
   type: string; 
   meaning: string; 
   level: string;
 };
-export type  PlayerStat = {
-    max_hp: number;
-    hp: number;
-    atk: number;
-    equipment: string[];
-    deck: Letter[];
-    bag: bag[];
-}; 
+
+// export type PlayerStat = {
+//     max_hp: number;
+//     hp: number;
+//     atk: number;
+//     // ใส่ ? ไว้ก่อน เผื่อใน Store ค่าเริ่มต้นยังไม่มีพวกนี้ จะได้ไม่แดงครับ
+//     equipment?: string[];
+//     deck?: Letter[];
+//     bag?: bag[];
+// }; 
+
 export type Letter = {
   word: string;
   level: number;
   ability: string | null;
   change: number;
 }
+
 export type bag = {
   item: string;
   count: number;
 }
-export type GameState = "ADVANTURE" | "PLAYERTURN" | "ENEMYTURN" | "ACTION" | "OVER";
+
+export type GameState = "ADVANTURE" | "PLAYERTURN" | "ENEMYTURN" | "ACTION" | "OVER" | "PREPARING_COMBAT";
+
+// ✅ 1. กำหนดประเภทเป้าหมาย
+export type TargetType = 'SINGLE' | 'MULTI' | 'SELF' | 'ALL';
+
+// ✅ 2. กำหนดประเภทเอฟเฟค
+export type EffectType = 'DAMAGE' | 'SHIELD' | 'BUFF' | 'SPIN';
+
+// ✅ 3. กำหนดหน้าตากระสุน
+export type ProjectileVisual = 'FIREBALL' | 'V_SHAPE' | 'NONE'; 
+
+// ✅ 4. โครงสร้างข้อมูลของ Skill (Data Structure)
+export interface SkillData {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  
+  // เงื่อนไขการใช้
+  apCost: number;
+  minWordLength: number;
+  
+  // ระบบเล็ง
+  targetType: TargetType;
+  maxTargets: number; // เล็งได้กี่ตัว (เช่น V-Missile = 2)
+
+  // ผลลัพธ์
+  effectType: EffectType;
+  basePower: number;    // พลังพื้นฐาน (เช่น Shield=5 per letter)
+  hitChanceBonus: number; // โบนัสความแม่น (V-Missile = 100)
+  isAutoHit: boolean;     // เป็นเวทมนตร์ที่ไม่ต้องทอยเต๋าหรือไม่
+  
+  // หน้าตา
+  projectileVisual: ProjectileVisual;
+}

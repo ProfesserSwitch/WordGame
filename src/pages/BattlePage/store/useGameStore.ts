@@ -1,345 +1,277 @@
 import { create } from "zustand";
-import type { Enemy, Projectile, DamagePopup, GameState, DictEntry, InventoryItem } from "../types";
-import { MAX_PLAYER_HP, PLAYER_X_POS, FIXED_Y, PLAYER_ATK, LETTER_DATA } from "../constants";
-import { sfx } from "../../../utils/sfx"; 
+import type { Enemy, Projectile, DamagePopup, GameState, DictEntry, InventoryItem, PlayerStat, SkillData } from "../types";
+import { PLAYER_X_POS, FIXED_Y, PLAYER_ATK } from "../constants";
+import { sfx } from "../../../utils/sfx";
+import { EnemyFactory, CombatSystem, PhysicsEngine, WordSystem } from "../../../utils/gameLogic"; // Import Logic ใหม่
 
-// --- Helper: ฟังก์ชันสุ่มตัวอักษรตามน้ำหนัก ---
-const generateRandomLetters = (count: number): InventoryItem[] => {
-  // 1. สร้าง Deck จำลองตามจำนวนที่มีใน LETTER_DATA
-  const deck: string[] = [];
-  Object.keys(LETTER_DATA).forEach((char) => {
-    const amount = LETTER_DATA[char].count;
-    for (let i = 0; i < amount; i++) {
-      deck.push(char);
-    }
-  });
-
-  // 2. สุ่มหยิบออกมาตามจำนวนที่ขอ (count)
-  const result: InventoryItem[] = [];
-  for (let i = 0; i < count; i++) {
-    const randomChar = deck[Math.floor(Math.random() * deck.length)];
-    result.push({
-      id: Math.random(), // สร้าง ID ให้ไม่ซ้ำ
-      char: randomChar,
-      visible: true,
-    });
-  }
-  return result;
-};
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 interface GameStateStore {
-  // --- State Variables ---
-  gameState: GameState;
-  playerStat: {
-    max_hp: number;
-    hp: number;
-    atk: number;
-  };
+  // ... (Interface คงเดิม) ...
+  gameState: GameState | "PREPARING_COMBAT";
+  playerStat: PlayerStat;
   enemies: Enemy[];
   projectiles: Projectile[];
   distance: number;
   damagePopups: DamagePopup[];
   dictionary: DictEntry[];
   playerShoutText: string;
-  inventory: InventoryItem[]; // ✅ เพิ่ม Inventory เข้ามาใน Store
+  inventory: InventoryItem[];
 
-  // --- Animation Control ---
   animResolver: (() => void) | null;
   notifyAnimationComplete: () => void;
-  waitForAnimation: () => Promise<void>;
+  waitAnim: (timeout?: number) => Promise<void>;
 
-  // --- Actions ---
   setDictionary: (data: DictEntry[]) => void;
   update: (dt: number) => void;
-  damagePlayer: (dmg: number) => void;
-  spawnEnemies: () => void;
-  shootFireball: (p: Projectile) => void;
   reset: () => void;
+  damagePlayer: (dmg: number) => void;
+  castSkill: (skill: SkillData, chosenWord: string, targetIds: number[], newInventory?: InventoryItem[]) => Promise<void>;
+  spawnEnemies: (loot: InventoryItem[]) => void;
+  updateEnemy: (id: number, data: Partial<Enemy>) => void;
+  damageEnemy: (id: number, dmg: number) => void;
+  runEnemyTurn: () => Promise<void>;
   addPopup: (p: DamagePopup) => void;
   removePopup: (id: number) => void;
-  
-  // --- Game Flow Logic ---
-  playAction: (chosenWord: string, targetId: number) => Promise<void>;
-  runEnemyTurn: () => Promise<void>;
-  
-  // --- Inventory Actions ---
-  spinLetters: () => void; // ฟังก์ชันสำหรับปุ่ม Spin (สุ่มใหม่)
+  alphabetMissle: (p: Projectile) => void;
+  setInventory: (items: InventoryItem[]) => void;
 }
 
 export const useGameStore = create<GameStateStore>((set, get) => ({
-  // 1. Initial State
+  // --- Initial State ---
   gameState: "ADVANTURE",
-  playerStat: {
-    max_hp: MAX_PLAYER_HP,
-    hp: MAX_PLAYER_HP,
-    atk: PLAYER_ATK,
-  },
+  playerStat: { max_hp: 10, hp: 10, shield: 0, atk: PLAYER_ATK, def: 0, max_ap: 3, ap: 3, max_bap: 1, bap: 1 },
   enemies: [],
   projectiles: [],
   distance: 0,
   damagePopups: [],
   dictionary: [],
   playerShoutText: "",
-  inventory: [], // เริ่มต้นเป็น array ว่าง
-  
-  // 2. Animation Control Implementation
+  inventory: [],
   animResolver: null,
 
-  waitForAnimation: () => {
-    return new Promise((resolve) => {
-      set({ animResolver: resolve });
-    });
-  },
-
+  // --- Animation Helpers ---
   notifyAnimationComplete: () => {
     const resolver = get().animResolver;
-    if (resolver) {
-      resolver();
-      set({ animResolver: null });
-    }
+    if (resolver) { resolver(); set({ animResolver: null }); }
+  },
+  waitAnim: async (timeoutMs = 1000) => {
+    const safeTimeout = setTimeout(() => get().notifyAnimationComplete(), timeoutMs);
+    await new Promise<void>((resolve) => set({ animResolver: resolve }));
+    clearTimeout(safeTimeout);
   },
 
-  // 3. Simple Actions
+  // --- Basic Setters ---
   setDictionary: (data) => set({ dictionary: data }),
-  
   addPopup: (p) => set((s) => ({ damagePopups: [...s.damagePopups, p] })),
-  
-  removePopup: (id) =>
-    set((s) => ({ damagePopups: s.damagePopups.filter((p) => p.id !== id) })),
+  removePopup: (id) => set((s) => ({ damagePopups: s.damagePopups.filter((p) => p.id !== id) })),
+  alphabetMissle: (p) => set((s) => ({ projectiles: [...s.projectiles, p] })),
+  setInventory: (items) => set({ inventory: items }),
+
+  reset: () => set({
+    gameState: "ADVANTURE",
+    playerStat: { max_hp: 10, hp: 10, shield: 0, atk: PLAYER_ATK, def:0, max_ap: 3, ap: 3, max_bap: 1, bap: 1 },
+    enemies: [], projectiles: [], distance: 0, damagePopups: [], inventory: [],
+  }),
+
+  // --- Combat Actions ---
 
   damagePlayer: (dmg) => {
-    const currentHp = get().playerStat.hp;
-    const newHp = Math.max(0, currentHp - dmg);
+    const { playerStat: stat } = get();
+    let remainingDmg = dmg;
+    let newShield = stat.shield;
 
-    set((s) => ({
-      playerStat: { ...s.playerStat, hp: newHp },
-    }));
+    if (newShield > 0) {
+      const block = Math.min(newShield, remainingDmg);
+      newShield -= block;
+      remainingDmg -= block;
+      get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 70, value: 0, isPlayer: true }); 
+    }
+
+    const newHp = Math.max(0, stat.hp - remainingDmg);
+    set({ playerStat: { ...stat, hp: newHp, shield: newShield } });
     
-    get().addPopup({
-      id: Math.random(),
-      x: PLAYER_X_POS - 2,
-      y: FIXED_Y - 50,
-      value: dmg,
-      isPlayer: true,
-    });
-
+    if (remainingDmg > 0) get().addPopup({ id: Math.random(), x: PLAYER_X_POS - 2, y: FIXED_Y - 50, value: remainingDmg, isPlayer: true });
     if (newHp <= 0) set({ gameState: "OVER" });
   },
 
-  spawnEnemies: () => {
-    // ✅ เรียกใช้ฟังก์ชันสุ่มตัวอักษร 7 ตัว
-    const initialLoot = generateRandomLetters(7);
-
+  spawnEnemies: (loot) => {
     set({
       gameState: "PLAYERTURN",
-      inventory: initialLoot, // ✅ ยัดใส่ Inventory ทันทีที่เจอศัตรู
-      enemies: [
-        {
-          id: Math.random(),
-          name: "Slime",
-          hp: 50,
-          maxHp: 50,
-          atk_power_min: 2,
-          atk_power_max: 3,
-          cooldown: 2,
-          current_cooldown: 0,
-          level: "A1",
-          x: 75,
-          targetX: 75,
-          atkFrame: 0,
-        },
-      ],
+      inventory: loot,
+      enemies: EnemyFactory.generateGroup(3, 60), // ✅ ใช้ Factory
+      playerStat: { ...get().playerStat, ap: get().playerStat.max_ap, bap: get().playerStat.max_bap }
     });
   },
 
-  shootFireball: (p) => set((s) => ({ projectiles: [...s.projectiles, p] })),
-
-  spinLetters: () => {
-     // สุ่มใหม่หมด (ใช้ 1 เทิร์น หรืออาจจะแค่เปลี่ยนของ - แล้วแต่ดีไซน์เกม)
-     // ในที่นี้สมมติว่ากดแล้วเปลี่ยนเลย
-     set({ inventory: generateRandomLetters(7) });
-  },
-
-  reset: () =>
-    set({
-      gameState: "ADVANTURE",
-      playerStat: { max_hp: MAX_PLAYER_HP, hp: MAX_PLAYER_HP, atk: PLAYER_ATK },
-      enemies: [],
-      projectiles: [],
-      distance: 0,
-      damagePopups: [],
-      inventory: [],
-    }),
-
-  // 4. Main Game Logic (Player Turn)
-  playAction: async (chosenWord, targetId) => {
+  castSkill: async (skill, chosenWord, targetIds, newInventory = []) => {
     const store = get();
+    if (store.playerStat.ap < skill.apCost) return;
 
-    // ✅ ลบตัวอักษรที่ใช้ไปออกจาก Inventory
-    const charsUsed = chosenWord.split('');
+    // 1. Resource Management
     let currentInv = [...store.inventory];
+    if (skill.effectType !== 'SPIN' && skill.minWordLength > 0) {
+        const charsUsed = chosenWord.split('');
+        charsUsed.forEach(char => {
+            const index = currentInv.findIndex(item => item.char === char);
+            if (index !== -1) currentInv.splice(index, 1);
+        });
+    }
 
-    charsUsed.forEach(char => {
-        const index = currentInv.findIndex(item => item.char === char);
-        if (index !== -1) {
-            currentInv.splice(index, 1); // ลบตัวที่เจอออก 1 ตัว
+    // 2. Start Action State
+    set(s => ({ 
+        playerShoutText: skill.name, 
+        gameState: "ACTION", 
+        inventory: currentInv,
+        playerStat: { ...s.playerStat, ap: s.playerStat.ap - skill.apCost }
+    }));
+    await store.waitAnim(800);
+
+    // 3. Apply Skill Effects
+    const wordScore = CombatSystem.calculateWordScore(chosenWord); // ✅ ใช้ Utility
+
+    if (skill.effectType === 'SPIN' && newInventory.length > 0) {
+         set({ inventory: newInventory });
+    } 
+    else if (skill.effectType === 'SHIELD') {
+        const shieldAmount = chosenWord.length * skill.basePower;
+        set(s => ({ playerStat: { ...s.playerStat, shield: s.playerStat.shield + shieldAmount } }));
+        get().addPopup({ id: Math.random(), x: PLAYER_X_POS, y: FIXED_Y - 60, value: shieldAmount, isPlayer: false });
+    } 
+    else if (skill.effectType === 'DAMAGE') {
+        for (const tid of targetIds) {
+            const target = store.enemies.find(e => e.id === tid);
+            if (!target || target.hp <= 0) continue;
+
+            const isHit = CombatSystem.calculateHit(skill, wordScore, target.ac); // ✅ ใช้ Utility
+            const finalDamage = CombatSystem.calculateDamage(skill, wordScore, isHit);
+
+            sfx.playMissle();
+            store.alphabetMissle({
+                id: Math.random(),
+                x: PLAYER_X_POS + 10, y: FIXED_Y - 50, startY: FIXED_Y - 50,
+                damage: finalDamage, targetId: tid,
+                char: skill.projectileVisual === 'V_SHAPE' ? 'V' : '',
+                visual: skill.projectileVisual,
+                isMiss: !isHit,
+                movementType: skill.projectileVisual === 'V_SHAPE' ? 'wavy' : 'straight',
+                scale: 1.0 + (chosenWord.length * 0.1),
+            } as any);
+            await delay(200);
         }
-    });
-
-    // อัปเดต Inventory ใหม่ (ตัวที่ใช้หายไป)
-    set({ 
-        playerShoutText: chosenWord, 
-        gameState: "ACTION",
-        inventory: currentInv 
-    });
-
-    // 4.2 รอ Animation ง้างมือ
-    const safeTimeout = setTimeout(() => get().notifyAnimationComplete(), 1000);
-    await store.waitForAnimation();
-    clearTimeout(safeTimeout);
-
-    // 4.3 สร้างลูกไฟ
-    const target = store.enemies.find((e) => e.id === targetId);
-    if (target && target.hp > 0) {
-      sfx.playHit();
-      store.shootFireball({
-        id: Math.random(),
-        x: PLAYER_X_POS + 10,
-        y: FIXED_Y - 50,
-        damage: chosenWord.length * PLAYER_ATK,
-        targetId,
-      });
     }
 
-    // 4.4 รอลูกไฟชน
-    let projectileMoving = true;
-    while (projectileMoving) {
-      await new Promise((r) => setTimeout(r, 100));
-      if (get().projectiles.length === 0) projectileMoving = false;
+    // 4. Wait for Projectiles
+    while (get().projectiles.length > 0) await delay(100);
+    await delay(500);
+    set({ playerShoutText: "" });
+
+    // 5. End Turn Logic
+    if (get().enemies.filter((e) => e.hp > 0).length === 0) {
+        set({ gameState: "ADVANTURE", enemies: [], projectiles: [], playerShoutText: "" });
+        return;
     }
-
-    await new Promise((r) => setTimeout(r, 500));
-
-    // 4.5 เช็คชนะ
-    const aliveCount = get().enemies.filter((e) => e.hp > 0).length;
-    if (aliveCount === 0) {
-      // ชนะแล้ว: ล้าง Inventory หรือจะเก็บไว้ก็ได้ (ที่นี้เลือกเก็บไว้ก่อน)
-      set({ gameState: "ADVANTURE", enemies: [], projectiles: [], playerShoutText: "" });
-      return;
-    }
-
-    // ✅ (Optional) เติมตัวอักษรให้เต็ม 7 ตัวหลังโจมตีเสร็จ?
-    // ถ้าอยากให้เติมของอัตโนมัติ ให้เปิดบรรทัดนี้:
-    // const needed = 7 - get().inventory.length;
-    // if(needed > 0) set(s => ({ inventory: [...s.inventory, ...generateRandomLetters(needed)] }));
-
-    // 4.6 เข้าสู่เทิร์นศัตรู
-    await get().runEnemyTurn();
+    
+    if (get().playerStat.ap <= 0) await get().runEnemyTurn();
+    else set({ gameState: "PLAYERTURN" });
   },
 
-  // 5. Enemy Turn (เหมือนเดิม)
+  // --- Enemy Turn (AI) ---
+  updateEnemy: (id, data) => set((s) => ({ enemies: s.enemies.map((e) => (e.id === id ? { ...e, ...data } : e)) })),
+  
+damageEnemy: (id, dmg) => {
+    const target = get().enemies.find(e => e.id === id);
+    if (target) {
+        const newHp = Math.max(0, target.hp - dmg);
+        
+        // อัปเดต HP ศัตรู
+        get().updateEnemy(id, { hp: newHp });
+        
+        // แสดงตัวเลขดาเมจ (Popup)
+        get().addPopup({ 
+            id: Math.random(), 
+            x: target.x - 2, 
+            y: FIXED_Y - 80, 
+            value: dmg 
+        });
+    }
+  },
+
   runEnemyTurn: async () => {
     const store = get();
     set({ playerShoutText: "", gameState: "ENEMYTURN" });
-
-    const enemyIds = store.enemies.map((e) => e.id);
-
-    for (const id of enemyIds) {
-      const currentEn = get().enemies.find((e) => e.id === id);
-      if (!currentEn || currentEn.hp <= 0) continue;
-
-      // 5.1 Check Cooldown
-      if (currentEn.current_cooldown > 0) {
-        get().addPopup({
-          id: Math.random(),
-          x: currentEn.x - 2,
-          y: FIXED_Y - 80,
-          value: 0, 
-        });
-        set((s) => ({
-          enemies: s.enemies.map((e) =>
-            e.id === id ? { ...e, current_cooldown: e.current_cooldown - 1 } : e
-          ),
-        }));
-        await new Promise((r) => setTimeout(r, 600));
-        continue;
+    
+    for (const en of store.enemies) {
+      if (en.hp <= 0) continue;
+      
+      // Cooldown Logic
+      if (en.current_cooldown > 0) {
+        get().addPopup({ id: Math.random(), x: en.x - 2, y: FIXED_Y - 80, value: 0 });
+        get().updateEnemy(en.id, { current_cooldown: en.current_cooldown - 1 });
+        await delay(600); continue;
       }
+      
+      // ✅ 1. คำนวณดาเมจก่อน (เพื่อเอาไปหาคำศัพท์)
+      const dmg = Math.floor(Math.random() * (en.atk_power_max - en.atk_power_min + 1)) + en.atk_power_min;
 
-      // 5.2 AI Logic
-      const targetLength = Math.floor(Math.random() * (currentEn.atk_power_max - currentEn.atk_power_min + 1)) + currentEn.atk_power_min;
-      const allDict = get().dictionary;
-      const pool = allDict
-        .filter((d) => d.level === currentEn.level && d.word.length === targetLength)
-        .map((d) => d.word);
+      // ✅ 2. สุ่มคำศัพท์ที่มีความยาวเท่ากับ dmg
+      const shoutWord = WordSystem.getRandomWordByLength(store.dictionary, dmg);
 
-      let generatedShout = pool.length > 0 
-        ? pool[Math.floor(Math.random() * pool.length)] 
-        : "Grrr!";
+      // Attack Logic (Shout -> Move -> Deal Damage)
+      get().updateEnemy(en.id, { shoutText: shoutWord }); // 🗣️ ตะโกนคำที่สุ่มได้
+      await delay(400);
+      
+      const originalX = en.x;
+      get().updateEnemy(en.id, { x: PLAYER_X_POS + 3, atkFrame: 1 });
+      await delay(400);
 
-      set((s) => ({
-        enemies: s.enemies.map((e) => e.id === id ? { ...e, shoutText: generatedShout } : e),
-      }));
-      await new Promise((r) => setTimeout(r, 400));
-
-      set((s) => ({
-        enemies: s.enemies.map((e) => e.id === id ? { ...e, x: PLAYER_X_POS + 8, atkFrame: 1 } : e),
-      }));
-
-      await new Promise((r) => setTimeout(r, 400));
-
-      if (get().enemies.find((e) => e.id === id)?.hp ?? 0 > 0) {
-        const finalDmg = targetLength * 5;
-        get().damagePlayer(finalDmg);
-        sfx.playHit();
-        set((s) => ({
-          enemies: s.enemies.map((e) => e.id === id ? { ...e, atkFrame: 2 } : e),
-        }));
-      }
-
-      await new Promise((r) => setTimeout(r, 400));
-
-      set((s) => ({
-        enemies: s.enemies.map((e) =>
-          e.id === id && e.hp > 0
-            ? { ...e, x: e.targetX, atkFrame: 0, current_cooldown: e.cooldown, shoutText: "" }
-            : e
-        ),
-      }));
-
-      await new Promise((r) => setTimeout(r, 200));
+      // Deal Damage (ใช้ค่า dmg ที่คำนวณไว้แล้ว)
+      get().damagePlayer(dmg);
+      sfx.playHit();
+      get().updateEnemy(en.id, { atkFrame: 2 });
+      
+      await delay(400);
+      get().updateEnemy(en.id, { x: originalX, atkFrame: 0, current_cooldown: en.cooldown, shoutText: "" });
+      await delay(200);
     }
-
+    
     if (get().playerStat.hp > 0) {
-      set({ gameState: "PLAYERTURN" });
+      set((s) => ({ gameState: "PLAYERTURN", playerStat: { ...s.playerStat, ap: s.playerStat.max_ap, bap: s.playerStat.max_bap } }));
     }
   },
 
-  // 6. Update Loop (เหมือนเดิม)
-  update: (dt) =>
-    set((state) => {
+  // --- Game Loop (Refactored) ---
+  update: (dt) => set((state) => {
+      // 1. Adventure Mode
       if (state.gameState === "ADVANTURE") {
         const newDist = state.distance + dt * 0.02;
-        if (newDist >= 120) {
-          setTimeout(() => get().spawnEnemies(), 0);
-          return { distance: 0 };
-        }
-        return { distance: newDist };
+        return newDist >= 120 ? { distance: 120, gameState: "PREPARING_COMBAT" } : { distance: newDist };
       }
-      if (state.projectiles.length > 0) {
-        const nextProjs = state.projectiles.map((p) => ({ ...p, x: p.x + dt * 0.08 }));
-        let currentEnemies = [...state.enemies];
-        const activeProjs: Projectile[] = [];
 
-        nextProjs.forEach((p) => {
-          const target = currentEnemies.find((e) => e.id === p.targetId);
-          if (target && p.x >= target.x) {
-            target.hp = Math.max(0, target.hp - p.damage);
-            get().addPopup({ id: Math.random(), x: target.x - 2, y: FIXED_Y - 80, value: p.damage });
-          } else if (p.x < 110) {
-            activeProjs.push(p);
-          }
-        });
-        return { enemies: currentEnemies, projectiles: activeProjs };
+      // 2. Projectile Physics & Collision
+      if (state.projectiles.length > 0) {
+         // ✅ ใช้ Physics Engine
+         const movedProjectiles = PhysicsEngine.updateProjectiles(state.projectiles, dt);
+         const { activeProjectiles, hits } = PhysicsEngine.checkCollisions(movedProjectiles, state.enemies);
+
+         // Process Hits (State Update) 
+         if (hits.length > 0) {
+            const newEnemies = [...state.enemies];
+            hits.forEach(({ targetIndex, damage }) => {
+                const target = newEnemies[targetIndex];
+                newEnemies[targetIndex] = { ...target, hp: Math.max(0, target.hp - damage) };
+                
+                // Add Popup (Side Effect)
+                get().addPopup({ 
+                    id: Math.random(), 
+                    x: target.x - 2, y: FIXED_Y - 80, 
+                    value: damage === 0 ? -1 : damage // -1 for Miss
+                });
+            });
+            return { enemies: newEnemies, projectiles: activeProjectiles };
+         }
+
+         return { projectiles: activeProjectiles };
       }
       return {};
     }),
