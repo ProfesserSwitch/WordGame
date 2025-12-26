@@ -1,36 +1,47 @@
-import type { SkillData } from "../pages/BattlePage/types";
+import type { SkillData } from "../pages/BattlePage/types"; // path ตามโครงสร้างคุณ
 
 export const SKILL_DATABASE: SkillData[] = [
   {
     id: "o_ball",
     name: "O-BALL",
     icon: "🔥",
-    description: "Fires a fireball based on word score.",
+    description: "Deals 1-10 Damage. Random.",
     apCost: 1,
     minWordLength: 1,
     targetType: "SINGLE",
     maxTargets: 1,
     effectType: "DAMAGE",
-    basePower: 1, // Multiplier หรือ Base damage
+    basePower: 1, // ไม่ได้ใช้แล้วถ้ามี min/max แต่ใส่ไว้กันบัค
     hitChanceBonus: 0,
     isAutoHit: false,
-    projectileVisual: "FIREBALL"
+    projectileVisual: "FIREBALL",
+    
+    // ✅ สเปคใหม่: ดาเมจ 1-10
+    damageMin: 1,
+    damageMax: 10,
+    hitCount: 1
   },
   {
     id: "v_missile",
     name: "V-MISSILE",
     icon: "🚀",
-    description: "Magic missile. Always hits. Req 4+ letters.",
+    description: "Hits 3 times (1-4 dmg each). Req 3+ letters.",
     apCost: 1,
-    minWordLength: 4,
-    targetType: "MULTI",
-    maxTargets: 2, // เล็งได้ 2 ตัว
+    minWordLength: 3,
+    targetType: "MULTI", // หรือ SINGLE ถ้าอยากเล็งตัวเดียวแล้วยิงรัวใส่
+    maxTargets: 1,       // ปกติ Multi-hit มักเล็งเป้าเดียวแล้วรัวใส่
     effectType: "DAMAGE",
     basePower: 1, 
     hitChanceBonus: 100,
     isAutoHit: true,
-    projectileVisual: "V_SHAPE"
+    projectileVisual: "V_SHAPE",
+
+    // ✅ สเปคใหม่: ยิง 3 ที ทีละ 1-4
+    damageMin: 1,
+    damageMax: 4,
+    hitCount: 3 
   },
+  // ... (SHIELD, SPIN เหมือนเดิม)
   {
     id: "shield",
     name: "SHIELD",
@@ -41,12 +52,12 @@ export const SKILL_DATABASE: SkillData[] = [
     targetType: "SELF",
     maxTargets: 0,
     effectType: "SHIELD",
-    basePower: 5, // 5 Shield per letter
+    basePower: 5,
     hitChanceBonus: 0,
     isAutoHit: true,
     projectileVisual: "NONE"
   },
-    {
+  {
     id: "spin",
     name: "SPIN",
     icon: "🎲",

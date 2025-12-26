@@ -47,9 +47,6 @@ export const PlayerEntity: React.FC<PlayerEntityProps> = ({
       }}
     >
       <ShoutBubble text={store.playerShoutText} />
-
-
-
         <div style={{ position: "relative", width: "90%", height: "16px", marginBottom: "50px" }}>
           <HpBar
             hp={store.playerStat.hp}
@@ -146,11 +143,11 @@ export const PlayerEntity: React.FC<PlayerEntityProps> = ({
             onAnimationComplete={onAnimationComplete}
             style={{
 
-    backgroundPosition: "bottom center",
-    backgroundRepeat: "no-repeat",
-    imageRendering: "pixelated", 
+              backgroundPosition: "bottom center",
+              backgroundRepeat: "no-repeat",
+              imageRendering: "pixelated", 
 
-    transformOrigin: "bottom center", 
+              transformOrigin: "bottom center", 
               backgroundImage: `url(${
                 playerAtkFrame === 1 ? attackPlayer1 : attackPlayer2
               })`,

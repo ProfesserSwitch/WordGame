@@ -6,7 +6,7 @@ interface Props {
   data: ProjectileType;
 }
 
-export const Projectile: React.FC<Props> = ({ data }) => {
+export const ProjectileEntity: React.FC<Props> = ({ data }) => {
   
   if (data.visual === 'FIREBALL') {
     return (

@@ -105,21 +105,18 @@ export interface SkillData {
   name: string;
   icon: string;
   description: string;
-  
-  // เงื่อนไขการใช้
   apCost: number;
   minWordLength: number;
+  targetType: 'SINGLE' | 'MULTI' | 'SELF';
+  maxTargets: number;
+  effectType: 'DAMAGE' | 'HEAL' | 'SHIELD' | 'SPIN'; // etc.
+  basePower: number;
+  hitChanceBonus: number;
+  isAutoHit: boolean;
+  projectileVisual: 'ORB' | 'V_SHAPE' | 'FIREBALL' | 'NONE';
   
-  // ระบบเล็ง
-  targetType: TargetType;
-  maxTargets: number; // เล็งได้กี่ตัว (เช่น V-Missile = 2)
-
-  // ผลลัพธ์
-  effectType: EffectType;
-  basePower: number;    // พลังพื้นฐาน (เช่น Shield=5 per letter)
-  hitChanceBonus: number; // โบนัสความแม่น (V-Missile = 100)
-  isAutoHit: boolean;     // เป็นเวทมนตร์ที่ไม่ต้องทอยเต๋าหรือไม่
-  
-  // หน้าตา
-  projectileVisual: ProjectileVisual;
+  // ✅ เพิ่ม 3 ค่านี้ (ใส่ ? เพื่อให้เป็น Optional เผื่อสกิลเก่าไม่มี)
+  damageMin?: number; 
+  damageMax?: number;
+  hitCount?: number; 
 }

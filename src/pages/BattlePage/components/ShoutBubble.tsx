@@ -16,7 +16,7 @@ export const ShoutBubble: React.FC<ShoutBubbleProps> = ({ text }) => {
           style={{
             position: "absolute",
             zIndex: 1000,
-            top: "-50px", // ตำแหน่งลอยเหนือหัว
+            top: "-50px", 
             backgroundColor: "white",
             color: "#333",
             padding: "4px 12px",
@@ -27,7 +27,6 @@ export const ShoutBubble: React.FC<ShoutBubbleProps> = ({ text }) => {
             border: "2px solid #000",
             boxShadow: "0 4px 6px rgba(0,0,0,0.3)",
             // จัดกึ่งกลาง (ถ้า Parent มี display:flex, align-items:center แล้ว ตัวนี้จะอยู่กลางเอง แต่ใส่ left/transform เผื่อไว้ได้)
-
             transform: "translateX(-50%)", 
           }}
         >
