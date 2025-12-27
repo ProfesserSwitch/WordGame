@@ -5,8 +5,8 @@ import { checkAuth } from "../store/reducers/authentication";
 
 import PrivateRoute from "../routes/PrivateRoute";
 import AuthLayout from "../components/AuthLayout/AuthLayout";
-import LoginPage from "./LoginPage";
-import RegisterPage from "./RegisterPage";
+import LoginPage from "./AuthPage/LoginPage";
+import RegisterPage from "./AuthPage/RegisterPage";
 import HomePage from "./HomePage";
 import AdvantureFeature from "./HomePage/feature/AdvantureFeature";
 import ShopSpellFeature from "./HomePage/feature/ShopSpellFeature";
@@ -14,7 +14,7 @@ import Quest from "./HomePage/feature/Quest";
 import MonsterLibrary from "./HomePage/feature/MonsterLibrary";
 import SettingsFeature from "./HomePage/feature/SettingFeature";
 import GameApp from "./BattlePage/App";
-
+import AuthPage from "./AuthPage";
 import { Loading } from "../components/Loading/Loading";
 
 export default function App() {
@@ -34,8 +34,9 @@ export default function App() {
     <Routes>
       {/* public */}
       <Route element={<AuthLayout/>}>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/auth/login" element={<LoginPage />} />
+        <Route path="/auth/register" element={<RegisterPage />} />
       </Route>
 
       {/* private */}
