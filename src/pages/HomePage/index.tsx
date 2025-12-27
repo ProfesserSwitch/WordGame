@@ -1,11 +1,15 @@
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { Outlet } from "react-router-dom";
 import GameAppBar from "../../components/AppBar";
 import { Loading } from "../../components/Loading/Loading";
-import { useLoadData } from "../LoginPage/hook/useLoadData";
+import { useLoadData } from "../AuthPage/LoginPage/hook/useLoadData";
 import { useEffect } from "react";
 import StarBackground from "./components/StarBackground";
-
+import { LeftFeatureBar } from "./components/LeftFeatureBar";
+import MagicCursor from "../../components/Cursor";
+import { AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import background2 from "../../assets/icons/background2.png";
 const HomePage = () => {
   const { loading, fetchAllData } = useLoadData();
 
@@ -31,8 +35,11 @@ const HomePage = () => {
   }
 
   return (
+   <>
+   <MagicCursor/>
     <Box sx={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
       <GameAppBar />
+      {/* <LeftFeatureBar/> */}
 
       {/* 🌌 Sky */}
       <Box
@@ -43,28 +50,77 @@ const HomePage = () => {
           overflow: "hidden",
         }}
       >
-        {/* ดาว */}
+        {/* ⭐ Stars (ลอยอย่างเดียว) */}
         <StarBackground />
 
-        {/* เนื้อหาเกม */}
-        <Box sx={{ position: "relative", zIndex: 2 }}>
-          <Outlet />
-        </Box>
+        {/* 🌙 Moon (ตัว C) */}
+        <motion.div
+          initial={{ opacity: 0.7, scale: 0.95 }}
+          animate={{
+            opacity: [0.6, 1, 0.7],
+            scale: [0.95, 1.05, 0.95],
+          }}
+          transition={{
+            duration: 2.8,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          style={{
+            position: "absolute",
+            top: 32,
+            right: 64,
+            zIndex: 1,
+            pointerEvents: "none",
+          }}
+        >
+          <Typography
+            sx={{
+              fontFamily: "'Cinzel', serif",
+              fontSize: "96px",
+              color: "#FFE066",
+              lineHeight: 1,
+              textShadow: `
+        0 0 6px #FFE066,
+        0 0 14px #FFD54F,
+        0 0 28px rgba(255, 213, 79, 0.8)
+      `,
+              userSelect: "none",
+            }}
+          >
+            C
+          </Typography>
+        </motion.div>
 
-        {/* 🪨 Ground */}
+        {/* 🏰 Magic School Castle */}
         <Box
+          component="img"
+          src={background2} // หรือ import มาก็ได้
+          alt="Magic School"
           sx={{
             position: "absolute",
             bottom: 0,
-            width: "100%",
-            height: "80px",
-            bgcolor: "#4F4E4E",
-            borderTop: "10px solid #ffffff",
+            left: -100,
+            width: { xs: "240px", md: "900px" },
+            imageRendering: "pixelated",
+            filter: "brightness(0.9)",
             zIndex: 1,
+            pointerEvents: "none",
           }}
         />
+
+        {/* 🎮 เนื้อหาเกม */}
+        <Box
+          sx={{
+            position: "relative",
+            zIndex: 2,
+            height: "100%",
+          }}
+        >
+          <Outlet />
+        </Box>
       </Box>
     </Box>
+   </>
   );
 };
 

@@ -10,3 +10,39 @@ body {
 
   font-family: "Fantasy" !important;
 }
+.magic-particle {
+  position: fixed;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+
+  background: radial-gradient(
+    circle,
+    rgba(232, 227, 200, 0.95),  /* cream core */
+    rgba(184, 155, 106, 0.65),  /* warm brown */
+    rgba(143, 175, 184, 0.15),  /* dusty blue mist */
+    transparent
+  );
+
+  filter: blur(1.5px);
+
+  animation: fadeOut 1.2s ease-out forwards;
+
+  box-shadow:
+    0 0 6px rgba(214, 199, 161, 0.45),
+    0 0 14px rgba(184, 155, 106, 0.3);
+}
+
+@keyframes fadeOut {
+  from {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
