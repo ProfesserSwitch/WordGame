@@ -1,3 +1,4 @@
+import { useState, useEffect, use } from "react";
 import {
   Box,
   Typography,
@@ -6,26 +7,39 @@ import {
   Select,
   InputLabel,
   MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from "@mui/material";
+import { motion } from "framer-motion";
 import { SearchComponent } from "../components/SearchComponent";
-
+import { useData } from "../hook/useData";
+import { Title } from "./AdvantureFeature";
 type SpellCardProps = {
   name: string;
   price: number;
   icon?: React.ReactNode;
+  onClick?: () => void;
+  selected?: boolean;
 };
 
-export const SpellCard = ({ name, price, icon }: SpellCardProps) => {
+export const SpellCard = ({
+  name,
+  price,
+  icon,
+  onClick,
+  selected,
+}: SpellCardProps) => {
   return (
     <Box
+      onClick={onClick}
       sx={{
         height: 140,
-        borderRadius: "10px",
-        backgroundColor: "#f2e1b8",
-        border: "4px solid #5c3a1e",
+        // borderRadius: "10px",
+        backgroundColor: "#ffffffff",
+        border: "3px solid #2b1d14",
 
-        boxShadow:
-          "inset 0 2px 0 #fff3cf, 0 6px 0 #3e2615",
+        boxShadow: "4px 4px 0px #2b1d14",
 
         display: "flex",
         flexDirection: "column",
@@ -44,8 +58,7 @@ export const SpellCard = ({ name, price, icon }: SpellCardProps) => {
 
         "&:active": {
           transform: "translateY(0)",
-          boxShadow:
-            "inset 0 2px 0 #fff3cf, 0 4px 0 #3e2615",
+          boxShadow: "inset 0 2px 0 #fff3cf, 0 4px 0 #3e2615",
         },
       }}
     >
@@ -87,11 +100,23 @@ export const SpellCard = ({ name, price, icon }: SpellCardProps) => {
   );
 };
 
-const SearchAndFilterSection = () => {
+const SearchAndFilterSection = ({
+  inputValue,
+  onChange,
+  handleSearchChange,
+}: {
+  inputValue: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleSearchChange: () => void;
+}) => {
   return (
     <>
       <Box sx={{ width: "70%", mr: 2 }}>
-        <SearchComponent />
+        <SearchComponent
+          value={inputValue}
+          onChange={onChange}
+          onSearch={handleSearchChange}
+        />
       </Box>
       <Box sx={{ width: "30%" }}>
         {/* <FormControl fullWidth>
@@ -125,7 +150,15 @@ const SearchAndFilterSection = () => {
   );
 };
 
-const ListSection = () => {
+const ListSection = ({
+  items,
+  selectedItem,
+  onSelectItem,
+}: {
+  items: any[];
+  selectedItem: any;
+  onSelectItem: (item: any) => void;
+}) => {
   return (
     <Box
       sx={{
@@ -135,7 +168,7 @@ const ListSection = () => {
           sm: "repeat(4, 1fr)",
           md: "repeat(6, 1fr)",
         }, // ⭐ 6 ต่อแถว
-        gap: 1,
+        gap: 2,
         flex: 1,
         // overflowY: "auto",
 
@@ -143,52 +176,121 @@ const ListSection = () => {
         pr: 1,
       }}
     >
-      {Array.from({ length: 20 }).map((_, index) => (
-       <SpellCard
+      {items.map((item, index) => (
+        <SpellCard
           key={index}
-          name={`Spell ${index + 1}`}
-          price={40}
-          icon={index % 2 === 0 ? "🔥" : "❄️"}
+          name={item.name}
+          price={item.price}
+          selected={selectedItem?.id === item.id}
+          onClick={() => onSelectItem(item)}
         />
       ))}
     </Box>
   );
 };
 
-const ShopSpellFeature = () => {
+const DetailItems = ({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) => {
   return (
-    <Box
-      sx={{
-        position: "fixed",
-        top: "50%",
-        left: "50%",
+    <Dialog sx={{}} open={open} onClose={onClose}>
+      <DialogTitle>Item Detail</DialogTitle>
+      <DialogContent>
+        {/* รายละเอียดไอเท็ม */}
+        มะเห็นได้
+        <></>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
-        transform: "translate(-50%, -50%)",
-        // background: "#feffebff",
-        // border: "20px solid #000000ff",
-        padding: 4,
-        zIndex: 9999,
-        height: "400px",
-        width: { xs: "80%", sm: "80%", md: "80%", lg: "60%" },
-      }}
-    >
-      <Box sx={{ display: "flex", width: "100%", mb: 2, padding: 1 }}>
-        <SearchAndFilterSection />
-      </Box>
+const ShopSpellFeature = () => {
+  const { item, loading, searchItems, resetItems } = useData();
+
+  const MotionBox = motion(Box);
+
+  const [openDetail, setOpenDetail] = useState(false);
+  const [inputValue, setInputValue] = useState("");
+  const [searchValue, setSearchValue] = useState("");
+
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [qty, setQty] = useState(1);
+
+  // search
+  useEffect(() => {
+    if (searchValue.trim() === "") {
+      resetItems();
+    } else {
+      searchItems(searchValue);
+    }
+  }, [searchValue]);
+  const handleSearchChange = () => {
+    if (inputValue === searchValue) return;
+    setSearchValue(inputValue);
+  };
+
+
+
+  return (
+    <>
       <Box
         sx={{
-          width: "100%",
-          height: "calc(100% - 60px)",
-          // backgroundColor: "blue",
-          overflow: "auto",
-          p:1
+          position: "fixed",
+          top: "60%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          paddingTop: 6, // เผื่อหัว
+          background: "linear-gradient(#7b4a3b, #5a3328)",
+          border: "6px solid #7a1f1f",
+          boxShadow: `
+    inset 0 0 0 3px #d6b46a,
+    0 0 20px rgba(180,40,40,0.5),
+    0 20px 40px rgba(0,0,0,0.8)
+  `,
+          width: { xs: "90%", sm: "80%", md: "80%", lg: "70%" },
+          height: "480px",
+          padding: 2,
         }}
       >
-        <ListSection />
-      </Box>
+        <Title title="SHOP MARKET" />
+        <Box sx={{ display: "flex", padding: 2, mt: 2 }}>
+          <SearchAndFilterSection
+            inputValue={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            handleSearchChange={handleSearchChange}
+          />
+        </Box>
+        <Box
+          sx={{
+            width: "100%",
+            height: "calc(100% - 60px)",
+            // backgroundColor: "blue",
+            overflow: "auto",
+            p: 1,
+          }}
+        >
+          <ListSection
+            items={item}
+            selectedItem={selectedItem}
+            onSelectItem={(item) => {
+              setSelectedItem(item);
+              setQty(1);
+              setOpenDetail(true);
+            }}
+          />
+        </Box>
+        {/* กรณี click เพื่อดู detail และซื้อ */}
 
-      {/* <Button onClick={() => navigate("/battle")}>play</Button> */}
-    </Box>
+        {/* <Button onClick={() => navigate("/battle")}>play</Button> */}
+      </Box>
+      {selectedItem && (
+        <DetailItems open={openDetail} onClose={() => setOpenDetail(false)} />
+      )}
+    </>
   );
 };
 

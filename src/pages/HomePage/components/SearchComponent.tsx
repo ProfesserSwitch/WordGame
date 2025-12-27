@@ -1,21 +1,40 @@
-import { TextField, InputAdornment } from "@mui/material";
+import { TextField, InputAdornment, IconButton } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-
-export const SearchComponent = () => {
+type SearchComponentProps = {
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSearch?: () => void;
+};
+export const SearchComponent = ({ value, onChange, onSearch  }: SearchComponentProps) => {
   return (
     <TextField
       placeholder="Search spell..."
       variant="outlined"
+      value={value}
+      onChange={onChange}
+      onKeyDown={
+        (e) => {
+          if (e.key === "Enter" && onSearch) {
+            onSearch();
+          }
+        }
+      }
       fullWidth
       InputProps={{
-        startAdornment: (
+        endAdornment: (
           <InputAdornment position="start">
-            <SearchIcon
+            <IconButton
+              onClick={onSearch}
               sx={{
-                fontSize: 20,
-                color: "#5c3a1e", // น้ำตาลไม้
+                p: 0.5,
+                color: "#5c3a1e",
+                "&:hover": {
+                  backgroundColor: "rgba(92,58,30,0.15)",
+                },
               }}
-            />
+            >
+              <SearchIcon fontSize="small" />
+            </IconButton>
           </InputAdornment>
         ),
       }}
