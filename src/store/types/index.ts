@@ -27,3 +27,13 @@ export interface ShopType {
   type: string;
   description: string;
 }
+
+export interface MonsterType {
+  id: string;
+  name: string;
+  max_hp: number;
+  atk_power_min: number;
+  atk_power_max: number;
+  cooldown: number;
+  description: string;
+}
