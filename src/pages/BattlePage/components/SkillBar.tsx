@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import type { GameState, DictEntry, PlayerStat, SkillData } from "../types";
-import { SKILL_DATABASE } from "../../../data/skillDatabase";
+
+// ✅ แก้ Import: ดึงมาจาก GameApp โดยตรง (เพราะเราเอามารวมไว้ที่นั่นแล้ว)
+import { SKILL_DATABASE } from "../../BattlePage/App"; 
 
 // --- Sub-Component: SkillButton ---
 const SkillButton = ({
@@ -12,6 +14,7 @@ const SkillButton = ({
   onClick,
   disabled,
   icon,
+  height = "50px", 
 }: {
   label: string;
   subLabel?: string;
@@ -20,6 +23,7 @@ const SkillButton = ({
   onClick: () => void;
   disabled: boolean;
   icon?: string;
+  height?: string;
 }) => {
   return (
     <motion.button
@@ -32,8 +36,8 @@ const SkillButton = ({
       disabled={disabled}
       style={{
         width: "100%",
-        height: "50px",
-        minHeight: "50px",
+        height: height,
+        minHeight: height,
         border: `2px solid ${disabled ? "#444" : "#000"}`,
         borderRadius: "6px",
         background: disabled
@@ -47,7 +51,7 @@ const SkillButton = ({
         overflow: "hidden",
         boxShadow: disabled ? "none" : "0 4px 6px rgba(0,0,0,0.3)",
         opacity: disabled ? 0.7 : 1,
-        marginBottom: "8px",
+        marginBottom: "0", 
         padding: 0,
         flexShrink: 0,
       }}
@@ -77,13 +81,19 @@ const SkillButton = ({
           flexDirection: "column",
           alignItems: "flex-start",
           justifyContent: "center",
+          overflow: "hidden", 
         }}
       >
         <span
           style={{
-            fontSize: "14px",
+            fontSize: "13px",
             fontWeight: "bold",
             textShadow: "1px 1px 0 #000",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            width: "100%",
+            textAlign: "left"
           }}
         >
           {label}
@@ -97,7 +107,7 @@ const SkillButton = ({
       {cost && (
         <div
           style={{
-            padding: "5px 10px",
+            padding: "4px 6px",
             fontSize: "10px",
             fontWeight: "bold",
             background: "rgba(0,0,0,0.4)",
@@ -120,10 +130,9 @@ interface SkillBarProps {
   validWordInfo: DictEntry | null;
   currentWordLength: number;
   targetingMode: boolean;
-
-  // ✅ ใช้ Handler ตัวเดียวจบ
   onSkillClick: (skill: SkillData) => void;
   onEndTurn: () => void;
+  onSpin: () => void;
 }
 
 type TabType = "ACTION" | "BAG";
@@ -135,26 +144,20 @@ export const SkillBar: React.FC<SkillBarProps> = ({
   currentWordLength,
   targetingMode,
   onSkillClick,
+  onSpin,
   onEndTurn,
 }) => {
   const isPlayerTurn = gameState === "PLAYERTURN";
   const hasWord = !!validWordInfo;
-
   const [activeTab, setActiveTab] = useState<TabType>("ACTION");
 
-  // ✅ Helper: เลือกสีตามประเภทสกิล
   const getSkillColor = (type: string) => {
     switch (type) {
-      case "DAMAGE":
-        return "#d32f2f"; // แดง
-      case "SHIELD":
-        return "#1976d2"; // น้ำเงิน
-      case "SPIN":
-        return "#fbc02d"; // เหลืองทอง
-      case "HEAL":
-        return "#388e3c"; // เขียว (เผื่ออนาคต)
-      default:
-        return "#5d4037"; // น้ำตาล
+      case "DAMAGE": return "#d32f2f";
+      case "SHIELD": return "#1976d2";
+      case "SPIN": return "#fbc02d";
+      case "HEAL": return "#388e3c";
+      default: return "#5d4037";
     }
   };
 
@@ -171,204 +174,79 @@ export const SkillBar: React.FC<SkillBarProps> = ({
         boxShadow: "0 5px 15px rgba(0,0,0,0.5)",
       }}
     >
-      {/* 1. PLAYER STATS HEADER */}
-      <div
-        style={{
-          background: "#1a120b",
-          padding: "10px",
-          borderBottom: "2px solid #5c4033",
-          display: "flex",
-          flexDirection: "column",
-          gap: "5px",
-        }}
-      >
-        {/* Name & Lvl */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: "14px",
-            color: "#fff",
-            fontWeight: "bold",
-            fontFamily: "monospace",
-          }}
-        >
-          <span>PLAYER</span>
-          <span>LV. 1</span>
+      {/* 1. HEADER (Stats) */}
+      <div style={{ background: "#1a120b", padding: "10px", borderBottom: "2px solid #5c4033", display: "flex", flexDirection: "column", gap: "5px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14px", color: "#fff", fontWeight: "bold", fontFamily: "monospace" }}>
+          <span>PLAYER</span><span>LV. 1</span>
         </div>
-
+        
         {/* HP Bar */}
-        <div
-          style={{
-            position: "relative",
-            width: "100%",
-            height: "14px",
-            background: "#444",
-            borderRadius: "7px",
-            overflow: "hidden",
-            border: "1px solid #000",
-          }}
-        >
-          <div
-            style={{
-              width: `${Math.max(
-                0,
-                (playerStat.hp / playerStat.max_hp) * 100
-              )}%`,
-              height: "100%",
-              background: "#ff4d4d",
-              transition: "width 0.3s",
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "10px",
-              fontWeight: "bold",
-              color: "#fff",
-              textShadow: "1px 1px 0 #000",
-            }}
-          >
+        <div style={{ position: "relative", width: "100%", height: "14px", background: "#444", borderRadius: "7px", overflow: "hidden", border: "1px solid #000" }}>
+          <div style={{ width: `${Math.max(0, (playerStat.hp / playerStat.max_hp) * 100)}%`, height: "100%", background: "#ff4d4d", transition: "width 0.3s" }} />
+          <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold", color: "#fff", textShadow: "1px 1px 0 #000" }}>
             {playerStat.hp} / {playerStat.max_hp}
           </div>
         </div>
+        
+        {/* ✅ MP BAR (สีฟ้า) */}
+        <div style={{ position: "relative", width: "100%", height: "6px", background: "#222", borderRadius: "3px", overflow: "hidden", border: "1px solid #444", marginTop: "2px" }}>
+           <div style={{ width: `${Math.min(100, (playerStat.mp / (playerStat.max_mp || 1)) * 100)}%`, height: "100%", background: "#2979ff", transition: "width 0.3s" }} />
+        </div>
 
-        {/* AP & Shield Row */}
+        {/* AP & Shield */}
         <div style={{ display: "flex", gap: "5px", marginTop: "4px" }}>
-          {/* AP Indicators */}
-          <div
-            style={{
-              flex: 1,
-              background: "rgba(0,0,0,0.3)",
-              padding: "4px",
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
-          >
-            <span
-              style={{ fontSize: "10px", color: "#aaa", marginRight: "2px" }}
-            >
-              AP:
-            </span>
+          <div style={{ flex: 1, background: "rgba(0,0,0,0.3)", padding: "4px", borderRadius: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
+            <span style={{ fontSize: "10px", color: "#aaa", marginRight: "2px" }}>AP:</span>
             {Array.from({ length: playerStat.max_ap }).map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  width: "10px",
-                  height: "10px",
-                  borderRadius: "50%",
-                  background: i < playerStat.ap ? "#00e676" : "#555",
-                  border: "1px solid #000",
-                  boxShadow: i < playerStat.ap ? "0 0 4px #00e676" : "none",
-                }}
-              />
+              <div key={i} style={{ width: "10px", height: "10px", borderRadius: "50%", background: i < playerStat.ap ? "#00e676" : "#555", border: "1px solid #000", boxShadow: i < playerStat.ap ? "0 0 4px #00e676" : "none" }} />
             ))}
           </div>
-
-          {/* Shield Badge */}
           {playerStat.shield > 0 && (
-            <div
-              style={{
-                background: "#00bcd4",
-                padding: "2px 8px",
-                borderRadius: "4px",
-                fontSize: "11px",
-                fontWeight: "bold",
-                color: "#000",
-                border: "1px solid #fff",
-              }}
-            >
-              🛡 {playerStat.shield}
-            </div>
+            <div style={{ background: "#00bcd4", padding: "2px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "bold", color: "#000", border: "1px solid #fff" }}>🛡 {playerStat.shield}</div>
           )}
         </div>
       </div>
 
       {/* 2. TABS */}
-      <div
-        style={{
-          display: "flex",
-          background: "#3e2723",
-          borderBottom: "2px solid #5c4033",
-        }}
-      >
-        <div
-          style={{
-            flex: 1,
-            padding: "8px 0",
-            textAlign: "center",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "12px",
-            color: activeTab === "ACTION" ? "#fff" : "#8d6e63",
-            background: activeTab === "ACTION" ? "#5c4033" : "transparent",
-          }}
-          onClick={() => setActiveTab("ACTION")}
-        >
-          ACTION
-        </div>
-        <div
-          style={{
-            flex: 1,
-            padding: "8px 0",
-            textAlign: "center",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "12px",
-            color: activeTab === "BAG" ? "#fff" : "#8d6e63",
-            background: activeTab === "BAG" ? "#5c4033" : "transparent",
-          }}
-          onClick={() => setActiveTab("BAG")}
-        >
-          BAG
-        </div>
+      <div style={{ display: "flex", background: "#3e2723", borderBottom: "2px solid #5c4033" }}>
+        <div style={{ flex: 1, padding: "8px 0", textAlign: "center", cursor: "pointer", fontWeight: "bold", fontSize: "12px", color: activeTab === "ACTION" ? "#fff" : "#8d6e63", background: activeTab === "ACTION" ? "#5c4033" : "transparent" }} onClick={() => setActiveTab("ACTION")}>ACTION</div>
+        <div style={{ flex: 1, padding: "8px 0", textAlign: "center", cursor: "pointer", fontWeight: "bold", fontSize: "12px", color: activeTab === "BAG" ? "#fff" : "#8d6e63", background: activeTab === "BAG" ? "#5c4033" : "transparent" }} onClick={() => setActiveTab("BAG")}>BAG</div>
       </div>
 
-      {/* 3. CONTENT AREA (Scrollable) */}
-      <div
-        style={{
-          flex: 1,
-          padding: "10px",
-          display: "flex",
-          flexDirection: "column",
-          overflowY: "auto",
-          background: "linear-gradient(180deg, #3e2723 0%, #2e2019 100%)",
-        }}
-      >
+{/* 3. CONTENT AREA */}
+      <div style={{ flex: 1, padding: "10px", display: "flex", flexDirection: "column", overflowY: "auto", background: "linear-gradient(180deg, #3e2723 0%, #2e2019 100%)", gap: "8px" }}>
         {activeTab === "ACTION" ? (
           <>
-            {/* ✅ Dynamic Skill Loop */}
-            {SKILL_DATABASE.map((skill) => {
-              // Logic เช็คปุ่ม Disabled
+            {SKILL_DATABASE.map((skill: any) => {
               let isDisabled = !isPlayerTurn || targetingMode;
 
-              if (playerStat.ap < skill.apCost) isDisabled = true;
+              // เช็ค AP
+              if (playerStat.ap < (skill.apCost || 0)) isDisabled = true;
+              
+              // เช็ค MP (ถ้าต้องใช้)
+              if ((skill.mpCost || 0) > 0 && playerStat.mp < skill.mpCost) isDisabled = true;
 
-              if (skill.minWordLength > 0) {
+              // ✅ เช็คจำนวนตัวอักษร (เฉพาะสกิลที่ต้องการตัวอักษร > 0)
+              if ((skill.minWordLength || 0) > 0) {
                 if (!hasWord) isDisabled = true;
                 if (currentWordLength < skill.minWordLength) isDisabled = true;
               }
+
+              // สร้าง Text แสดง Cost/Gain
+              let costText = "";
+              if (skill.apCost > 0) costText += `${skill.apCost} AP`;
+              if (skill.mpCost > 0) costText += `${costText ? ' ' : ''}${skill.mpCost} MP`; // Cost สีขาวปกติ
+              
+              // สร้าง SubLabel (แสดงผล MP Gain ด้วย)
+              let subText = skill.description;
+              if (skill.mpGain > 0) subText = `(+${skill.mpGain} MP) ${subText}`;
 
               return (
                 <SkillButton
                   key={skill.id}
                   label={skill.name}
-                  subLabel={
-                    skill.minWordLength > 1
-                      ? `Req: ${skill.minWordLength}+ Letters`
-                      : skill.description
-                  }
-                  cost={`${skill.apCost} AP`}
-                  // ✅ ใช้สีตามประเภทสกิล
+                  subLabel={subText}
+                  cost={costText}
                   color={getSkillColor(skill.effectType)}
                   icon={skill.icon}
                   disabled={isDisabled}
@@ -376,41 +254,37 @@ export const SkillBar: React.FC<SkillBarProps> = ({
                 />
               );
             })}
+          </>
+        ) : (
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", opacity: 0.5 }}>
+            <div style={{ fontSize: "30px", marginBottom: "10px" }}>🎒</div>
+            <div style={{ color: "#aaa", fontSize: "12px" }}>Inventory Empty</div>
+          </div>
+        )}
+      </div>
 
-            {/* ✅ END TURN BUTTON */}
-            <div
-              style={{
-                marginTop: "auto",
-                paddingTop: "10px",
-                borderTop: "1px solid rgba(255,255,255,0.1)",
-              }}
-            >
-              <SkillButton
-                label="END TURN"
-                color="#555"
+      {/* 4. BOTTOM ACTION ROW */}
+      <div style={{ padding: "10px", background: "#1a120b", borderTop: "2px solid #5c4033", display: "flex", gap: "8px" }}>
+          <div style={{ flex: 1 }}>
+            <SkillButton
+                label="SPIN"
+                color="#fbc02d" 
+                icon="🎲"
+                disabled={!isPlayerTurn || targetingMode}
+                onClick={onSpin}
+                height="45px" 
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <SkillButton
+                label="END"
+                color="#d32f2f" 
                 icon="⏳"
                 disabled={!isPlayerTurn || targetingMode}
                 onClick={onEndTurn}
-              />
-            </div>
-          </>
-        ) : (
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              opacity: 0.5,
-            }}
-          >
-            <div style={{ fontSize: "30px", marginBottom: "10px" }}>🎒</div>
-            <div style={{ color: "#aaa", fontSize: "12px" }}>
-              Inventory Empty
-            </div>
+                height="45px"
+            />
           </div>
-        )}
       </div>
     </div>
   );

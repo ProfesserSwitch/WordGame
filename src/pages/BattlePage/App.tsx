@@ -1,9 +1,23 @@
-import React, { useEffect, useState, useRef, useMemo } from "react";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import { Reorder, motion, AnimatePresence } from "framer-motion";
 import { useGameStore } from "./store/useGameStore";
 import { uiStyles } from "./styles/gameStyles";
-import { PLAYER_X_POS, LETTER_DATA, FIXED_Y  } from "./constants";
-import type { InventoryItem, DictEntry, SkillData, Enemy, Projectile } from "./types";
+import { PLAYER_X_POS, LETTER_DATA, FIXED_Y } from "./store/constants";
+import type {
+  InventoryItem,
+  DictEntry,
+  SkillData,
+  Enemy,
+  Projectile,
+  EnemyActionType,
+  QuizData,
+} from "./types";
 
 // Components
 import { InventorySlot } from "./components/InventorySlot";
@@ -11,6 +25,7 @@ import { SkillBar } from "./components/SkillBar";
 import { PlayerEntity } from "./components/PlayerEntity";
 import { EnemyEntity } from "./components/EnemyEntity";
 import { ProjectileEntity } from "./components/ProjectileEntity";
+import { MeaningPopup } from "./components/MeaningPopup";
 
 // Assets
 import walkEnemy1 from "../../assets/image/enemy/rat/walk/1.png";
@@ -19,9 +34,71 @@ import idleEnemy from "../../assets/image/enemy/rat/walk/1.png";
 import attackEnemy1 from "../../assets/image/enemy/rat/attack/1.png";
 import attackEnemy2 from "../../assets/image/enemy/rat/attack/2.png";
 
-// --- ✅ LOGIC UTILS (Pure Functions) ---
+// ==========================================
+// ✅ SKILL DATABASE (แก้ไขตามที่ขอ: เพิ่ม mpCost)
+// ==========================================
+export const SKILL_DATABASE: SkillData[] = [
+  {
+    id: "o_ball",
+    name: "O-BALL",
+    icon: "🔥",
+    description: "Deals 1-10 Dmg. (+5 MP)", // บอกผู้เล่นว่าได้ MP
+    apCost: 1,
+    mpCost: 0, // ✅ ไม่ใช้ MP (จะได้เพิ่ม MP แทนใน Logic)
+    minWordLength: 1,
+    targetType: "SINGLE",
+    maxTargets: 1,
+    effectType: "DAMAGE",
+    basePower: 1,
+    hitChanceBonus: 0,
+    isAutoHit: false,
+    projectileVisual: "FIREBALL",
+    damageMin: 1,
+    damageMax: 10,
+    hitCount: 1,
+  },
+  {
+    id: "shield",
+    name: "SHIELD",
+    icon: "🛡",
+    description: "Gain Shield. (+5 MP)",
+    apCost: 1,
+    mpCost: 0, // ✅ ไม่ใช้ MP
+    minWordLength: 1,
+    targetType: "SELF",
+    maxTargets: 0,
+    effectType: "SHIELD",
+    basePower: 1,
+    hitChanceBonus: 0,
+    isAutoHit: true,
+    projectileVisual: "NONE",
+  },
+  {
+    id: "v_missile",
+    name: "V-MISSILE",
+    icon: "🚀",
+    description: "Ultimate! Hits 3 times. (25 MP)",
+    apCost: 1, // หรือจะให้ 0 ก็ได้ตามดีไซน์ (ในที่นี้ใส่ 1 ไว้ก่อน)
+    mpCost: 25, // ✅ ต้องใช้ 25 MP ถึงจะกดได้
+    minWordLength: 0,
+    targetType: "MULTI",
+    maxTargets: 1,
+    effectType: "DAMAGE",
+    basePower: 1,
+    hitChanceBonus: 100,
+    isAutoHit: true,
+    projectileVisual: "V_SHAPE",
+    damageMin: 1,
+    damageMax: 4,
+    hitCount: 3,
+  }
+];
 
-const DeckManager = {
+// ==========================================
+// ✅ LOGIC UTILS (เหมือนเดิม)
+// ==========================================
+
+export const DeckManager = {
   deck: [] as string[],
   init() {
     this.deck = [];
@@ -48,7 +125,7 @@ const DeckManager = {
   },
 };
 
-const InventoryUtils = {
+export const InventoryUtils = {
   fillEmptySlots: (
     currentInv: (InventoryItem | null)[],
     reservedIndices: number[],
@@ -83,68 +160,68 @@ const InventoryUtils = {
   },
 };
 
-// ✅ 1. Enemy Factory: สร้างศัตรู
+const ENEMY_PATTERNS: EnemyActionType[][] = [
+  ["ATTACK", "ATTACK", "WAIT"],
+  ["WAIT", "ATTACK", "ATTACK"],
+  ["WAIT", "WAIT", "SKILL"],
+];
+
 export const EnemyFactory = {
-  createSlime: (level: "A1", xPos: number): Enemy => ({
-    id: Math.random(),
-    x: xPos,
-    name: "Slime",
-    hp: 10,
-    maxHp: 10,
-    ac: 8,
-    atk_power_min: 2,
-    atk_power_max: 3,
-    cooldown: 2,
-    current_cooldown: 0,
-    level,
-    atkFrame: 0,
-  }),
+  createSlime: (level: "A1", xPos: number): Enemy => {
+    const randomPattern =
+      ENEMY_PATTERNS[Math.floor(Math.random() * ENEMY_PATTERNS.length)];
+    return {
+      id: Math.random(),
+      x: xPos,
+      name: "Slime",
+      hp: 10,
+      maxHp: 10,
+      ac: 8,
+      atk_power_min: 2,
+      atk_power_max: 3,
+      level,
+      atkFrame: 0,
+      pattern: randomPattern,
+      currentStep: 0,
+    };
+  },
   generateGroup: (count: number, startX: number) => {
-    return Array.from({ length: count }).map((_, i) => 
-      EnemyFactory.createSlime("A1", startX + (i * 10))
+    return Array.from({ length: count }).map((_, i) =>
+      EnemyFactory.createSlime("A1", startX + i * 10)
     );
-  }
+  },
 };
 
-// ✅ 2. Combat System: คำนวณดาเมจและโอกาสตีโดน
 export const CombatSystem = {
   calculateHit: (skill: SkillData, wordScore: number, targetAc: number) => {
     if (skill.isAutoHit) return true;
     const d20 = Math.floor(Math.random() * 20) + 1;
-    // WordScore อาจจะยังบวก Hit Chance อยู่ตามดีไซน์เดิม
-    return (d20 + wordScore + skill.hitChanceBonus) >= targetAc;
+    return d20 + wordScore + skill.hitChanceBonus >= targetAc;
   },
-  
-  // ✅ แก้ไข: รองรับ Random Range
+
   calculateDamage: (skill: SkillData, wordScore: number, isHit: boolean) => {
     if (!isHit) return 0;
-
-    // กรณี 1: มีการระบุ Range (เช่น 1-10)
     if (skill.damageMin !== undefined && skill.damageMax !== undefined) {
-        return Math.floor(Math.random() * (skill.damageMax - skill.damageMin + 1)) + skill.damageMin;
+      return (
+        Math.floor(Math.random() * (skill.damageMax - skill.damageMin + 1)) +
+        skill.damageMin
+      );
     }
-
-    // กรณี 2: แบบเดิม (Score * Multiplier)
     return Math.floor(wordScore * skill.basePower) || 1;
   },
 
   calculateWordScore: (word: string): number => {
     return word
-      .toUpperCase() // แปลงเป็นตัวพิมพ์ใหญ่ให้ตรงกับ Key ใน LETTER_DATA
+      .toUpperCase()
       .split("")
       .reduce((total, char) => {
-        // ดึงข้อมูลของตัวอักษรนั้นๆ ออกมา
         const data = LETTER_DATA[char];
-        
-        // ถ้ามีข้อมูล ให้บวก .score เข้าไป, ถ้าไม่มี (กัน Bug) ให้บวก 0
         const score = data ? data.score : 0;
-        
         return total + score;
       }, 0);
   },
 };
 
-// ✅ 3. Physics Engine: คำนวณการเคลื่อนที่และการชน
 export const PhysicsEngine = {
   updateProjectiles: (projectiles: Projectile[], dt: number) => {
     return projectiles.map((p) => {
@@ -152,11 +229,11 @@ export const PhysicsEngine = {
       const nextX = p.x + dx;
       let nextY = p.y;
 
-      if (p.movementType === 'straight') {
+      if (p.movementType === "straight") {
         nextY = p.startY || p.y;
       } else {
-        // Wavy movement logic
-        nextY = (p.startY || p.y) + Math.sin(nextX * 0.15 + (p.phase || 0)) * 20;
+        nextY =
+          (p.startY || p.y) + Math.sin(nextX * 0.15 + (p.phase || 0)) * 20;
       }
 
       const deltaY = nextY - p.y;
@@ -172,54 +249,165 @@ export const PhysicsEngine = {
     const activeProjectiles: Projectile[] = [];
 
     projectiles.forEach((p) => {
-      const targetIndex = enemies.findIndex(e => e.id === p.targetId);
+      const targetIndex = enemies.findIndex((e) => e.id === p.targetId);
       const target = enemies[targetIndex];
 
-      // Check Collision condition (Hit target OR out of bounds)
       if (target && p.x >= target.x) {
         hits.push({ p, targetIndex, damage: p.isMiss ? 0 : p.damage });
-      } else if (p.x < 110) { // Still flying
+      } else if (p.x < 110) {
         activeProjectiles.push(p);
       }
     });
 
     return { activeProjectiles, hits };
-  }
+  },
 };
 
-// ✅ 4. Word System: จัดการเรื่องคำศัพท์
 export const WordSystem = {
   getRandomWordByLength: (dictionary: DictEntry[], length: number): string => {
-    // กรองคำที่มีความยาวตรงกับดาเมจ
-    const candidates = dictionary.filter(d => d.word.length === length);
-    
-    // ถ้ามีคำ ให้สุ่มมา 1 คำ
+    const candidates = dictionary.filter((d) => d.word.length === length);
     if (candidates.length > 0) {
       const randomIndex = Math.floor(Math.random() * candidates.length);
       return candidates[randomIndex].word.toUpperCase();
     }
-    
-    // Fallback: ถ้าไม่มีคำยาวเท่านี้ใน dict ให้สร้างเสียงคำรามมั่วๆ เช่น ดาเมจ 3 -> "AAA"
     const fallbackChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     let result = "";
     for (let i = 0; i < length; i++) {
-        result += fallbackChars.charAt(Math.floor(Math.random() * fallbackChars.length));
+      result += fallbackChars.charAt(
+        Math.floor(Math.random() * fallbackChars.length)
+      );
     }
     return result;
-  }
+  },
 };
 
-// --- ✅ LOADING SCREEN COMPONENTS ---
+// --- QUIZ OVERLAY ---
+const QuizOverlay = ({
+  data,
+  onAnswer,
+}: {
+  data: QuizData;
+  onAnswer: (ans: string) => void;
+}) => {
+  const DURATION_MS = 10000;
+  const [progress, setProgress] = useState(100);
+  const savedCallback = useRef(onAnswer);
 
+  useEffect(() => {
+    savedCallback.current = onAnswer;
+  }, [onAnswer]);
+
+  useEffect(() => {
+    const startTime = Date.now();
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, DURATION_MS - elapsed);
+      const newProgress = (remaining / DURATION_MS) * 100;
+      setProgress(newProgress);
+      if (remaining <= 0) {
+        clearInterval(timer);
+        savedCallback.current("TIMEOUT");
+      }
+    }, 16);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div
+      style={{
+        width: "95%",
+        maxWidth: "800px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
+        alignItems: "center",
+      }}
+    >
+      <div
+        style={{
+          color: "#ff4d4d",
+          fontSize: "18px",
+          fontWeight: "bold",
+          letterSpacing: "2px",
+          textShadow: "0 0 10px red",
+        }}
+      >
+        ⚠️ ENEMY APPROACHING! TRANSLATE!
+      </div>
+      <div
+        style={{
+          width: "100%",
+          height: "15px",
+          background: "#333",
+          borderRadius: "8px",
+          overflow: "hidden",
+          border: "2px solid #fff",
+        }}
+      >
+        <div
+          style={{
+            height: "100%",
+            background: progress > 30 ? "#00e676" : "#ff1744",
+            width: `${progress}%`,
+          }}
+        />
+      </div>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          gap: "10px",
+          width: "100%",
+          justifyContent: "space-between",
+        }}
+      >
+        {data.choices.map((choice, idx) => (
+          <motion.button
+            key={idx}
+            whileHover={{
+              scale: 1.05,
+              background: "#444",
+              border: "2px solid #ffd700",
+            }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => onAnswer(choice)}
+            style={{
+              flex: 1,
+              padding: "20px 5px",
+              fontSize: "18px",
+              fontWeight: "bold",
+              background: "#2a2a2a",
+              color: "#fff",
+              border: "2px solid #555",
+              borderRadius: "8px",
+              cursor: "pointer",
+              textTransform: "uppercase",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {choice}
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ... Loading/Error Views ...
 const LoadingView = () => {
   // State สำหรับสลับเฟรมเดิน (Animation Frame)
+
   const [frame, setFrame] = useState(0);
 
   // Loop สลับรูปทุกๆ 200ms
+
   useEffect(() => {
     const interval = setInterval(() => {
       setFrame((prev) => (prev === 0 ? 1 : 0));
     }, 200);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -227,54 +415,82 @@ const LoadingView = () => {
     <div
       style={{
         width: "100vw",
+
         height: "100vh",
+
         background: "#121212",
+
         display: "flex",
+
         flexDirection: "column",
+
         justifyContent: "center",
+
         alignItems: "center",
+
         color: "#eebb55",
+
         position: "relative",
+
         overflow: "hidden",
       }}
     >
       {/* พื้นหลังจางๆ (Optional) */}
+
       <div
         style={{
           position: "absolute",
+
           bottom: "40%",
+
           width: "100%",
+
           height: "2px",
+
           background: "#333",
         }}
       ></div>
 
       {/* ตัวละครเดิน */}
+
       <div style={{ position: "relative", marginBottom: "30px" }}>
         {/* เงาใต้เท้า */}
+
         <div
           style={{
             position: "absolute",
+
             bottom: "-5px",
+
             left: "10%",
+
             width: "80%",
+
             height: "10px",
+
             background: "rgba(0,0,0,0.5)",
+
             borderRadius: "50%",
+
             filter: "blur(4px)",
           }}
         />
 
         {/* รูปตัวละคร (ใช้ Framer Motion ให้เด้งนิดๆ ตอนเดิน) */}
+
         <motion.img
           key={frame} // บังคับ Re-render เมื่อเปลี่ยนเฟรม
           src={frame === 0 ? walkEnemy1 : walkEnemy2} // 👈 เปลี่ยนเป็นรูป Player ของคุณตรงนี้
           alt="Loading..."
           style={{
             width: "64px",
+
             height: "64px",
+
             imageRendering: "pixelated", // ให้ภาพคมแบบ Pixel Art
+
             position: "relative",
+
             zIndex: 2,
           }}
           animate={{ y: [0, -4, 0] }} // เด้งขึ้นลง
@@ -283,21 +499,29 @@ const LoadingView = () => {
       </div>
 
       {/* Text Loading */}
+
       <h2
         style={{
           fontFamily: "monospace",
+
           letterSpacing: "4px",
+
           fontSize: "24px",
+
           textShadow: "0 0 10px rgba(238, 187, 85, 0.5)",
         }}
       >
         LOADING...
       </h2>
+
       <p
         style={{
           color: "#666",
+
           fontSize: "12px",
+
           marginTop: "5px",
+
           fontFamily: "monospace",
         }}
       >
@@ -306,7 +530,6 @@ const LoadingView = () => {
     </div>
   );
 };
-
 const ErrorView = ({
   error,
   onRetry,
@@ -326,57 +549,22 @@ const ErrorView = ({
       color: "#ff4d4d",
     }}
   >
-    <h1 style={{ fontSize: "40px", marginBottom: "10px" }}>⚠️ ERROR</h1>
-    <p
-      style={{
-        color: "#fff",
-        marginBottom: "30px",
-        textAlign: "center",
-        maxWidth: "400px",
-      }}
-    >
-      {error}
-      <br />
-      <span style={{ fontSize: "12px", color: "#aaa" }}>
-        (Server might be offline)
-      </span>
-    </p>
-    <button
-      onClick={onRetry}
-      style={{
-        padding: "12px 30px",
-        fontSize: "18px",
-        fontWeight: "bold",
-        background: "#ff4d4d",
-        color: "#fff",
-        border: "none",
-        borderRadius: "8px",
-        cursor: "pointer",
-        boxShadow: "0 0 15px rgba(255, 77, 77, 0.4)",
-      }}
-    >
-      RETRY CONNECTION
-    </button>
+    <h1>⚠️ ERROR</h1>
+    <p>{error}</p>
+    <button onClick={onRetry}>RETRY</button>
   </div>
 );
 
-// --- ✅ MAIN COMPONENT ---
-
+// --- MAIN APP ---
 export default function GameApp() {
   const store = useGameStore();
-
-  // --- App State (Loading System) ---
   const [appStatus, setAppStatus] = useState<"LOADING" | "READY" | "ERROR">(
     "LOADING"
   );
   const [errorMessage, setErrorMessage] = useState<string>("");
-
-  // --- Game Config ---
   const INVENTORY_COUNT = 20;
   const PLAYER_SLOTS = 10;
   const constraintsRef = useRef(null);
-
-  // --- Game State ---
   const [castingSkill, setCastingSkill] = useState<SkillData | null>(null);
   const [selectedTargets, setSelectedTargets] = useState<number[]>([]);
   const [inventory, setInventory] = useState<(InventoryItem | null)[]>(
@@ -385,17 +573,13 @@ export default function GameApp() {
   const [selectedLetters, setSelectedLetters] = useState<
     (InventoryItem | null)[]
   >(new Array(10).fill(null));
-
   const [animFrame, setAnimFrame] = useState(0);
   const [isPlayerAttacking, setIsPlayerAttacking] = useState(false);
   const [playerAtkFrame, setPlayerAtkFrame] = useState(0);
   const [validWordInfo, setValidWordInfo] = useState<DictEntry | null>(null);
   const [hoveredEnemyId, setHoveredEnemyId] = useState<number | null>(null);
-
   const requestRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
-
-  // --- Derived State ---
   const activeSelectedItems = selectedLetters.filter(
     (item): item is InventoryItem => item !== null
   );
@@ -413,51 +597,29 @@ export default function GameApp() {
 
   const hoveredEnemy = store.enemies.find((e) => e.id === hoveredEnemyId);
 
-  // --- ✅ Initialization (Load Data) ---
   const initGameData = async () => {
     setAppStatus("LOADING");
     setErrorMessage("");
-
     try {
-      // 1. Load Dictionary (Critical)
       const response = await fetch("http://localhost:3000/dict");
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch dictionary: ${response.status} ${response.statusText}`
-        );
-      }
-
+      if (!response.ok)
+        throw new Error(`Failed to fetch dictionary: ${response.status}`);
       const data = await response.json();
-      if (!Array.isArray(data) || data.length === 0) {
-        throw new Error("Dictionary data is empty or invalid format.");
-      }
-
       store.setDictionary(data);
-
-      // 2. Init Deck Logic
       DeckManager.init();
-
-      // 3. (Optional) Preload Images here if needed
-
-      // Success -> Start Game
       setAppStatus("READY");
     } catch (err: any) {
-      console.error("Game Init Error:", err);
-      setErrorMessage(err.message || "Unknown Network Error");
+      setErrorMessage(err.message);
       setAppStatus("ERROR");
     }
   };
 
-  // เรียก Init ครั้งแรกเมื่อเข้าเว็บ
   useEffect(() => {
     initGameData();
   }, []);
 
-  // --- Game Loop (Only active when READY) ---
   const animate = (time: number) => {
-    if (appStatus !== "READY") return; // ห้ามรันถ้ายังโหลดไม่เสร็จ
-
+    if (appStatus !== "READY") return;
     if (lastTimeRef.current !== undefined) {
       const dt = time - lastTimeRef.current;
       if (dt < 100) store.update(dt);
@@ -477,7 +639,6 @@ export default function GameApp() {
     }
   }, [appStatus]);
 
-  // --- Sync Logic ---
   useEffect(() => {
     store.setInventory(
       inventory.filter((item): item is InventoryItem => item !== null)
@@ -518,21 +679,15 @@ export default function GameApp() {
     if (!found) resetCasting();
   }, [currentWord, store.dictionary]);
 
-  // --- Helpers & Handlers ---
   const resetCasting = () => {
     setCastingSkill(null);
     setSelectedTargets([]);
   };
-
-  // แสดงผลการคำนวณ Hit Chance / Damage
   const getHitChance = (enemyAC: number) => {
     if (!castingSkill) return 0;
     if (castingSkill.isAutoHit) return 100;
     const bonus = currentWordScore + castingSkill.hitChanceBonus;
-    const minRoll = enemyAC - bonus;
-    if (minRoll <= 1) return 100;
-    if (minRoll > 20) return 0;
-    return Math.round(((20 - minRoll + 1) / 20) * 100);
+    return Math.round(((20 - (enemyAC - bonus) + 1) / 20) * 100);
   };
   const getDamageInfo = () => {
     if (!castingSkill) return "0";
@@ -540,46 +695,24 @@ export default function GameApp() {
       Math.floor(currentWordScore * castingSkill.basePower) || 1;
     return castingSkill.effectType === "DAMAGE" ? `~${estimatedDmg}` : "-";
   };
-
-  // กด 1 สกิล
   const handleSkillClick = (skill: SkillData) => {
-    if (skill.effectType === "SPIN") {
-      const reserved = selectedLetters
-        .filter((l): l is InventoryItem => l !== null)
-        .map((l) => l.originalIndex);
-      const newInv = InventoryUtils.fillEmptySlots(
-        inventory,
-        reserved,
-        PLAYER_SLOTS,
-        true
-      );
-      setInventory(newInv);
-      const validItems = newInv.filter(
-        (item): item is InventoryItem => item !== null
-      );
-      store.castSkill(skill, "", [], validItems);
-    } else if (skill.targetType === "SELF") {
-      executeSkill(skill, currentWord, []);
-    } else {
-      // ✅ แก้ตรงนี้: คำนวณจำนวนเป้าหมายที่จะให้เลือก
-      // ถ้า skill ไม่ได้ระบุ maxTargets มา ให้ใช้ hitCount (จำนวนนัด) แทน
-      // เช่น V-Missile ยิง 3 นัด ก็ต้องเลือกเป้าได้ 3 ครั้ง
+    // ✅ เพิ่มการเช็ค MP ที่หน้าบ้านด้วย เพื่อความชัวร์ (ปุ่มจะกดไม่ได้อยู่แล้วเพราะ Logic ใน SkillBar แต่กันไว้)
+    if (store.playerStat.mp < (skill.mpCost || 0)) return;
+
+    if (skill.targetType === "SELF") executeSkill(skill, currentWord, []);
+    else {
       const targetLimit =
         skill.maxTargets > 1 ? skill.maxTargets : skill.hitCount || 1;
-
-      // setCastingSkill โดยยัด maxTargets ที่ถูกต้องเข้าไป
       setCastingSkill({ ...skill, maxTargets: targetLimit });
       setSelectedTargets([]);
     }
   };
-
-  
   const executeSkill = async (
     skill: SkillData,
     word: string,
     targets: number[]
   ) => {
-    if (skill.effectType !== "SPIN" && skill.minWordLength > 0) {
+    if (skill.minWordLength > 0) {
       const nextInv = [...inventory];
       selectedLetters.forEach((item) => {
         if (item) nextInv[item.originalIndex] = null;
@@ -597,7 +730,6 @@ export default function GameApp() {
     }, 1000);
     await store.castSkill(skill, word, targets);
   };
-
   const handleEnemyClick = async (id: number | null) => {
     if (!castingSkill || id === null) return;
     const newTargets = [...selectedTargets, id];
@@ -607,7 +739,6 @@ export default function GameApp() {
         )
       : setSelectedTargets(newTargets);
   };
-
   const handleSelectLetter = (item: InventoryItem, idx: number) => {
     if (store.gameState !== "PLAYERTURN") return;
     const emptyIdx = selectedLetters.findIndex((s) => s === null);
@@ -620,7 +751,6 @@ export default function GameApp() {
       setInventory(newInv);
     }
   };
-
   const handleDeselectLetter = (idx: number) => {
     const item = selectedLetters[idx];
     if (item && store.gameState === "PLAYERTURN") {
@@ -636,7 +766,6 @@ export default function GameApp() {
       ]);
     }
   };
-
   const handleResetLetters = () => {
     const items = selectedLetters.filter((l): l is InventoryItem => l !== null);
     if (items.length === 0) return;
@@ -645,23 +774,35 @@ export default function GameApp() {
     );
     setSelectedLetters(new Array(10).fill(null));
   };
-
   const handleEndTurn = () => {
     handleResetLetters();
     store.runEnemyTurn();
   };
+  const handleSpin = () => {
+    if (store.playerStat.ap < 1) return;
+    const reserved = selectedLetters
+      .filter((l): l is InventoryItem => l !== null)
+      .map((l) => l.originalIndex);
+    const newInv = InventoryUtils.fillEmptySlots(
+      inventory,
+      reserved,
+      PLAYER_SLOTS,
+      true
+    );
+    setInventory(newInv);
+    const validItems = newInv.filter(
+      (item): item is InventoryItem => item !== null
+    );
+    store.actionSpin(validItems);
+  };
+  const handleQuizAnswer = useCallback((ans: string) => {
+    store.resolveQuiz(ans);
+  }, []);
 
-  // --- ✅ MAIN RENDER: SWITCH VIEW BASED ON STATUS ---
-
-  if (appStatus === "LOADING") {
-    return <LoadingView />;
-  }
-
-  if (appStatus === "ERROR") {
+  if (appStatus === "LOADING") return <LoadingView />;
+  if (appStatus === "ERROR")
     return <ErrorView error={errorMessage} onRetry={initGameData} />;
-  }
 
-  // READY STATE: RENDER GAME
   return (
     <div
       style={{
@@ -689,7 +830,6 @@ export default function GameApp() {
           boxShadow: "0 0 20px rgba(0,0,0,0.5)",
         }}
       >
-        {/* --- Targeting Header --- */}
         {castingSkill && (
           <div
             style={{
@@ -741,7 +881,6 @@ export default function GameApp() {
             width: "100%",
           }}
         >
-          {/* Background */}
           <div
             style={{
               backgroundPositionX:
@@ -751,7 +890,6 @@ export default function GameApp() {
             }}
           />
 
-          {/* Reorder Group */}
           <div
             ref={constraintsRef}
             style={{
@@ -788,48 +926,41 @@ export default function GameApp() {
               }}
             >
               <AnimatePresence initial={false}>
-                {activeSelectedItems.map((item) => {
-                  const originalIndex = selectedLetters.findIndex(
-                    (s) => s?.id === item.id
-                  );
-                  return (
-                    <Reorder.Item
-                      key={item.id}
-                      value={item}
-                      dragConstraints={constraintsRef}
-                      dragElastic={0}
-                      dragMomentum={false}
-                      layout="position"
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0, opacity: 0 }}
-                      onTap={() =>
-                        originalIndex !== -1 &&
-                        handleDeselectLetter(originalIndex)
-                      }
-                      style={{
-                        background: "#f2a654",
-                        width: "44px",
-                        height: "44px",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        border: "3px solid #000",
-                        fontWeight: "bold",
-                        fontSize: "22px",
-                        cursor: "grab",
-                        boxShadow: "0 4px 0 #b37400",
-                      }}
-                    >
-                      {item.char}
-                    </Reorder.Item>
-                  );
-                })}
+                {activeSelectedItems.map((item) => (
+                  <Reorder.Item
+                    key={item.id}
+                    value={item}
+                    dragConstraints={constraintsRef}
+                    layout="position"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    onTap={() =>
+                      handleDeselectLetter(
+                        selectedLetters.findIndex((s) => s?.id === item.id)
+                      )
+                    }
+                    style={{
+                      background: "#f2a654",
+                      width: "44px",
+                      height: "44px",
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      border: "3px solid #000",
+                      fontWeight: "bold",
+                      fontSize: "22px",
+                      cursor: "grab",
+                      boxShadow: "0 4px 0 #b37400",
+                    }}
+                  >
+                    {item.char}
+                  </Reorder.Item>
+                ))}
               </AnimatePresence>
             </Reorder.Group>
           </div>
 
-          {/* Entities */}
           <PlayerEntity
             store={store}
             isPlayerAttacking={isPlayerAttacking}
@@ -841,44 +972,39 @@ export default function GameApp() {
           <AnimatePresence>
             {store.enemies
               .filter((en) => en.hp > 0)
-              .map((en, i) => {
-                const selectCount = selectedTargets.filter(
-                  (id) => id === en.id
-                ).length;
-                return (
-                  <EnemyEntity
-                    key={en.id}
-                    enemy={en}
-                    index={i}
-                    animFrame={animFrame}
-                    gameState={store.gameState}
-                    isTargeted={selectCount > 0}
-                    onSelect={handleEnemyClick}
-                    onHover={(isHover) =>
-                      setHoveredEnemyId(isHover ? en.id : null)
-                    }
-                    selectionCount={selectCount}
-                    assets={{
-                      walkEnemy1,
-                      walkEnemy2,
-                      idleEnemy,
-                      attackEnemy1,
-                      attackEnemy2,
-                    }}
-                    style={{
-                      cursor: castingSkill ? "crosshair" : "help",
-                      filter:
-                        (castingSkill && hoveredEnemyId === en.id) ||
-                        selectCount > 0
-                          ? "drop-shadow(0 0 5px red)"
-                          : "none",
-                    }}
-                  />
-                );
-              })}
+              .map((en, i) => (
+                <EnemyEntity
+                  key={en.id}
+                  enemy={en}
+                  index={i}
+                  animFrame={animFrame}
+                  gameState={store.gameState}
+                  isTargeted={selectedTargets.includes(en.id)}
+                  onSelect={handleEnemyClick}
+                  onHover={(isHover) =>
+                    setHoveredEnemyId(isHover ? en.id : null)
+                  }
+                  selectionCount={
+                    selectedTargets.filter((id) => id === en.id).length
+                  }
+                  assets={{
+                    walkEnemy1,
+                    walkEnemy2,
+                    idleEnemy,
+                    attackEnemy1,
+                    attackEnemy2,
+                  }}
+                />
+              ))}
           </AnimatePresence>
 
-          {/* Tooltip */}
+          {/* Meaning Popup */}
+          <AnimatePresence>
+            {validWordInfo && (
+                <MeaningPopup meaning={validWordInfo.meaning} />
+            )}
+          </AnimatePresence>
+
           <AnimatePresence>
             {hoveredEnemy && (
               <motion.div
@@ -951,7 +1077,6 @@ export default function GameApp() {
                         fontSize: "12px",
                         display: "flex",
                         justifyContent: "space-between",
-                        padding: "2px 5px",
                       }}
                     >
                       <span style={{ color: "#aaa" }}>HP:</span>
@@ -964,7 +1089,6 @@ export default function GameApp() {
                         fontSize: "12px",
                         display: "flex",
                         justifyContent: "space-between",
-                        padding: "2px 5px",
                       }}
                     >
                       <span style={{ color: "#aaa" }}>ATK:</span>
@@ -978,7 +1102,6 @@ export default function GameApp() {
                         fontSize: "12px",
                         display: "flex",
                         justifyContent: "space-between",
-                        padding: "2px 5px",
                       }}
                     >
                       <span style={{ color: "#aaa" }}>AC:</span>
@@ -992,58 +1115,6 @@ export default function GameApp() {
             )}
           </AnimatePresence>
 
-          {/* Meaning Popup */}
-          <AnimatePresence>
-            {validWordInfo && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  left: 0,
-                  width: "100%",
-                  display: "flex",
-                  justifyContent: "center",
-                  zIndex: 999,
-                }}
-              >
-                <div style={{ height: "65px" }} />
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 0.85, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  style={{
-                    background: "rgba(244, 228, 188)",
-                    border: "2px solid #5c4033",
-                    padding: "10px 25px",
-                    borderRadius: "4px",
-                    textAlign: "center",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      color: "#8d6e63",
-                      fontWeight: "bold",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    — Meaning —<br />
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "16px",
-                      color: "#3e2723",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {validWordInfo.meaning}
-                  </span>
-                </motion.div>
-              </div>
-            )}
-          </AnimatePresence>
-
-          {/* Damage Popups & Projectiles */}
           <AnimatePresence>
             {store.damagePopups.map((p) => (
               <motion.div
@@ -1073,11 +1144,11 @@ export default function GameApp() {
               </motion.div>
             ))}
           </AnimatePresence>
+
           {store.projectiles.map((p) => (
             <ProjectileEntity key={p.id} data={p} />
           ))}
 
-          {/* Game Over */}
           {store.gameState === "OVER" && (
             <div
               style={{
@@ -1128,83 +1199,29 @@ export default function GameApp() {
             height: "280px",
           }}
         >
-          <div
-            id="inventory"
-            style={{
-              flex: 2,
-              maxWidth: "600px",
-              background: "linear-gradient(180deg, #3d2b1f 0%, #2e2019 100%)",
-              borderRadius: "12px",
-              border: "3px solid #eebb55",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              padding: "8px",
-              boxShadow: "inset 0 0 30px rgba(0,0,0,0.8)",
-            }}
-          >
-            <div
-              style={{
-                color: "#eebb55",
-                fontSize: "12px",
-                fontWeight: 900,
-                letterSpacing: "2px",
-                borderBottom: "2px solid #eebb55",
-                width: "95%",
-                textAlign: "center",
-                paddingBottom: "5px",
-                marginBottom: "5px",
-              }}
-            >
-              INVENTORY
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "100%",
-                width: "100%",
-              }}
-            >
-              <motion.div
-                layout
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(5, 1fr)",
-                  gridTemplateRows: "repeat(4, 1fr)",
-                  padding: "10px",
-                  background: "#3e2723",
-                  border: "4px solid #d4af37",
-                  borderRadius: "5px",
-                  height: "90%",
-                  width: "95%",
-                }}
-              >
-                {inventory.map((item, index) => (
-                  <InventorySlot
-                    key={`slot-${index}`}
-                    item={item ?? undefined}
-                    index={index}
-                    onSelect={handleSelectLetter}
-                    isLocked={index >= PLAYER_SLOTS}
-                  />
-                ))}
-              </motion.div>
-            </div>
-          </div>
-
-          <div style={{ flex: 1, maxWidth: "300px", minWidth: "260px" }}>
-            <SkillBar
-              playerStat={store.playerStat}
-              gameState={store.gameState}
-              validWordInfo={validWordInfo}
-              currentWordLength={activeSelectedItems.length}
-              targetingMode={!!castingSkill}
-              onSkillClick={handleSkillClick}
-              onEndTurn={handleEndTurn}
-            />
-          </div>
+          {store.gameState === "QUIZ_MODE" && store.currentQuiz ? (
+            <QuizOverlay data={store.currentQuiz} onAnswer={handleQuizAnswer} />
+          ) : (
+            <>
+              <InventorySlot 
+                inventory={inventory} 
+                onSelectLetter={handleSelectLetter} 
+                playerSlots={10} 
+              />
+              <div style={{ flex: 1, maxWidth: "300px", minWidth: "260px" }}>
+                <SkillBar
+                  playerStat={store.playerStat}
+                  gameState={store.gameState}
+                  validWordInfo={validWordInfo}
+                  currentWordLength={activeSelectedItems.length}
+                  targetingMode={!!castingSkill}
+                  onSkillClick={handleSkillClick}
+                  onSpin={handleSpin}
+                  onEndTurn={handleEndTurn}
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

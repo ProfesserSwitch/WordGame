@@ -7,17 +7,41 @@ export interface Enemy {
   ac: number; // ✅ เพิ่ม Armor Class
   atk_power_min: number;
   atk_power_max: number;
-  cooldown: number;
-  current_cooldown: number;
+  pattern: EnemyActionType[]; // เก็บชุดคำสั่ง เช่น ["ATTACK", "WAIT", "ATTACK"]
+  currentStep: number;        // บอกว่าตอนนี้ถึงขั้นตอนไหนแล้ว (0, 1, 2...)
   level: string;
   atkFrame: number;
   shoutText?: string;
+}
+
+// ✅ Action มีแค่ 3 อย่างเหมือนเดิม
+export type EnemyActionType = "ATTACK" | "WAIT" | "SKILL";
+
+// ✅ GameState เพิ่ม QUIZ_MODE
+export type GameState = 
+  | "LOADING" 
+  | "ADVANTURE" 
+  | "PREPARING_COMBAT" 
+  | "PLAYERTURN" 
+  | "ENEMYTURN" 
+  | "ACTION" 
+  | "OVER" 
+  | "QUIZ_MODE"; 
+
+
+export interface QuizData {
+  question: string; // คำภาษาไทย
+  choices: string[]; // Choice ภาษาอังกฤษ (4 คำ)
+  correctAnswer: string; // คำตอบที่ถูก
+  enemyId: number; // ID ศัตรูที่ถาม (เพื่อทำ Animation)
 }
 
 export interface PlayerStat {
   max_hp: number;
   hp: number;
   shield: number;
+  mp: number;    // ✅ เพิ่ม Mana Points
+  max_mp: number; // ✅ เพิ่ม Max Mana Points
   atk: number;
   def: number;
   // ✅ เพิ่ม Action Points
@@ -88,8 +112,6 @@ export type bag = {
   count: number;
 }
 
-export type GameState = "ADVANTURE" | "PLAYERTURN" | "ENEMYTURN" | "ACTION" | "OVER" | "PREPARING_COMBAT";
-
 // ✅ 1. กำหนดประเภทเป้าหมาย
 export type TargetType = 'SINGLE' | 'MULTI' | 'SELF' | 'ALL';
 
@@ -114,7 +136,7 @@ export interface SkillData {
   hitChanceBonus: number;
   isAutoHit: boolean;
   projectileVisual: 'ORB' | 'V_SHAPE' | 'FIREBALL' | 'NONE';
-  
+  mpCost?: number; // ✅ เพิ่มค่าใช้จ่ายมานา (ถ้ามี) 
   // ✅ เพิ่ม 3 ค่านี้ (ใส่ ? เพื่อให้เป็น Optional เผื่อสกิลเก่าไม่มี)
   damageMin?: number; 
   damageMax?: number;

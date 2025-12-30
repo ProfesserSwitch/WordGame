@@ -2,43 +2,40 @@ import type { CSSProperties } from "react";
 
 export const uiStyles: { [key: string]: CSSProperties } = {
 
-  wrapper: {
-    width: "100vw",
-    height: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    background: "#121212",
-    padding: "0", // ลบ padding ออกเพื่อให้คำนวณเต็มจอได้เป๊ะ
-    boxSizing: "border-box",
-    fontFamily: "monospace",
-    overflow: "hidden", // ป้องกัน Scrollbar โผล่
-  },
-  gameContainer: {
-    height: "95vh",          
-    aspectRatio: "10/6",      
-    width: "auto",          
-    maxWidth: "100vw",      
-    display: "flex",
-    flexDirection: "column",
-    border: "4px solid #000",
-    background: "#B3F1FF",
-    position: "relative",
-    overflow: "hidden",
+  // wrapper: {
+  //   width: "100vw",
+  //   height: "100vh",
+  //   display: "flex",
+  //   justifyContent: "center",
+  //   alignItems: "center",
+  //   background: "#121212",
+  //   padding: "0", // ลบ padding ออกเพื่อให้คำนวณเต็มจอได้เป๊ะ
+  //   boxSizing: "border-box",
+  //   fontFamily: "monospace",
+  //   overflow: "hidden", // ป้องกัน Scrollbar โผล่
+  // },
+  // gameContainer: {
+  //   height: "95vh",          
+  //   aspectRatio: "10/6",      
+  //   width: "auto",          
+  //   maxWidth: "100vw",      
+  //   display: "flex",
+  //   flexDirection: "column",
+  //   border: "4px solid #000",
+  //   background: "#B3F1FF",
+  //   position: "relative",
+  //   overflow: "hidden",
 
-    boxShadow: "0 0 20px rgba(0,0,0,0.5)", 
-  },
-
-
-spriteLayer: {
-    // position: "absolute",  <-- ❌ ลบทิ้ง หรือเปลี่ยนเป็น relative เพื่อไม่ให้ทับ HP Bar
-    position: "relative",     // ✅ ใช้ relative แทน
-    backgroundPosition: "bottom center",
-    backgroundRepeat: "no-repeat",
-    imageRendering: "pixelated", 
-    transform: "scale(1.5)",     
-    transformOrigin: "bottom center", 
-  },
+  //   boxShadow: "0 0 20px rgba(0,0,0,0.5)", 
+  // },
+// spriteLayer: {
+//     position: "relative",    
+//     backgroundPosition: "bottom center",
+//     backgroundRepeat: "no-repeat",
+//     imageRendering: "pixelated", 
+//     transform: "scale(1.5)",     
+//     transformOrigin: "bottom center", 
+//   },
 
   targetArrow: {
     position: "absolute",

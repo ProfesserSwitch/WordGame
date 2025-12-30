@@ -7,7 +7,7 @@ import {
   DISPLAY_WIDE,
   FIXED_Y,
   PLAYER_X_POS,
-} from "../constants";
+} from "../store/constants";
 import { uiStyles } from "../styles/gameStyles";
 
 // Assets
