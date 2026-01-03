@@ -10,12 +10,14 @@ import RegisterPage from "./AuthPage/RegisterPage";
 import HomePage from "./HomePage";
 import AdvantureFeature from "./HomePage/feature/AdvantureFeature";
 import ShopSpellFeature from "./HomePage/feature/ShopSpellFeature";
-import Quest from "./HomePage/feature/Quest";
-import MonsterLibrary from "./HomePage/feature/MonsterLibrary";
+import DictionaryLibrary from "./HomePage/feature/LibraryFeature/dictionary/DictionaryLibrary";
+import MonsterLibrary from "./HomePage/feature/LibraryFeature/monster/MonsterLibrary";
 import SettingsFeature from "./HomePage/feature/SettingFeature";
 import GameApp from "./BattlePage/App";
 import AuthPage from "./AuthPage";
 import { Loading } from "../components/Loading/Loading";
+import { HomeLobbyLayout } from "./HomePage/HomeLobbyLayout";
+import LibraryFeature from "./HomePage/feature/LibraryFeature";
 
 export default function App() {
   const dispatch = useAppDispatch();
@@ -33,8 +35,8 @@ export default function App() {
   return (
     <Routes>
       {/* public */}
-      <Route element={<AuthLayout/>}>
-         <Route path="/auth" element={<AuthPage />} />
+      <Route element={<AuthLayout />}>
+        <Route path="/auth" element={<AuthPage />} />
         <Route path="/auth/login" element={<LoginPage />} />
         <Route path="/auth/register" element={<RegisterPage />} />
       </Route>
@@ -42,12 +44,17 @@ export default function App() {
       {/* private */}
       <Route element={<PrivateRoute />}>
         <Route path="/" element={<HomePage />}>
-          <Route path="adventure" element={<AdvantureFeature />} />
+          <Route index element={<HomeLobbyLayout />} />
+          {/* <Route path="adventure" element={<AdvantureFeature />} />
           <Route path="shop" element={<ShopSpellFeature />} />
           <Route path="quest" element={<Quest />} />
-          <Route path="monster" element={<MonsterLibrary />} />
-
+          <Route path="monster" element={<MonsterLibrary />} /> */}
         </Route>
+        <Route path="/adventure" element={<AdvantureFeature />} />
+          <Route path="/shop" element={<ShopSpellFeature />} />
+          <Route path="/library" element={<LibraryFeature/>} />
+          <Route path="/library/dictionary" element={<DictionaryLibrary />} />
+          <Route path="/library/monster" element={<MonsterLibrary />} />
         <Route path="/battle" element={<GameApp />} />
       </Route>
     </Routes>
