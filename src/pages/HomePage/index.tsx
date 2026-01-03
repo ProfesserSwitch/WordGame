@@ -11,28 +11,28 @@ import { AnimatePresence } from "framer-motion";
 import { motion } from "framer-motion";
 import background2 from "../../assets/icons/background2.png";
 const HomePage = () => {
-  const { loading, fetchAllData } = useLoadData();
+  // const { loading, fetchAllData } = useLoadData();
 
-  useEffect(() => {
-    fetchAllData();
-  }, [fetchAllData]);
+  // useEffect(() => {
+  //   fetchAllData();
+  // }, [fetchAllData]);
 
-  if (loading) {
-    return (
-      <Box
-        sx={{
-          width: "100vw",
-          height: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#ffffff",
-        }}
-      >
-        <Loading />
-      </Box>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <Box
+  //       sx={{
+  //         width: "100vw",
+  //         height: "100vh",
+  //         display: "flex",
+  //         alignItems: "center",
+  //         justifyContent: "center",
+  //         backgroundColor: "#ffffff",
+  //       }}
+  //     >
+  //       <Loading />
+  //     </Box>
+  //   );
+  // }
 
   return (
    <>
@@ -45,7 +45,7 @@ const HomePage = () => {
       <Box
         sx={{
           position: "relative",
-          height: "calc(100vh - 64px)", // หัก AppBar
+          height: "calc(100% - 65px)", // หัก AppBar
           backgroundColor: "#16141A",
           overflow: "hidden",
         }}
@@ -100,7 +100,7 @@ const HomePage = () => {
             position: "absolute",
             bottom: 0,
             left: -100,
-            width: { xs: "240px", md: "900px" },
+            width: { xs: "500px", md: "900px" },
             imageRendering: "pixelated",
             filter: "brightness(0.9)",
             zIndex: 1,
