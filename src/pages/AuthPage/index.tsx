@@ -58,7 +58,7 @@ const AuthPage = () => {
         animate={{ scale: [1, 1.05, 1] }}
         transition={{ duration: 2.5, repeat: Infinity }}
       >
-        <img src={Logo} alt="Logo" style={{ width: "700px", }} />
+        <img src={Logo} alt="Logo" style={{ width: "500px", }} />
 
       </motion.div>
 
