@@ -1,63 +1,59 @@
-export function HpBar({ hp, max, color }: { hp: number; max: number; color: string }) {
-  // คำนวณ % เลือด ไม่ให้เกิน 0-100
+import React from "react";
+
+interface HpBarProps {
+  hp: number;
+  max: number;
+  color: string;
+}
+
+export function HpBar({ hp, max, color }: HpBarProps) {
   const percent = Math.max(0, Math.min(100, (hp / max) * 100));
 
   return (
     <div
       style={{
-        // 1. ปรับ Layout (เอา absolute ออก เพื่อให้ Flexbox ของแม่จัดการตำแหน่ง)
         position: "relative",
-        
-        // 2. ปรับขนาดให้ใหญ่ขึ้น
-        width: "100px", 
-        height: "18px",
-        
-        // 3. ดีไซน์กรอบ (ขอบหนา, มุมมน, พื้นหลังเทา)
+        width: "70%", 
+        height: "100%", 
         background: "#333",
-        border: "3px solid #000",
-        borderRadius: "6px",
-        overflow: "hidden", // เพื่อไม่ให้หลอดสีข้างในทะลุมุมมนออกมา
-        boxShadow: "0 3px 0 rgba(0,0,0,0.3)", // เงาใต้หลอด
-        
-        // จัดกึ่งกลางตัวเลข
+        border: "2px solid #000",
+        borderRadius: "4px",
+        overflow: "hidden",
+        boxShadow: "0 2px 0 rgba(0,0,0,0.3)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-
-                   marginBottom: "40px", // 📍 แก้ตรงนี้
-                    zIndex: 20
       }}
     >
-      {/* ส่วนเนื้อหลอดเลือด (Bar Fill) */}
+      {/* Bar Fill */}
       <div
         style={{
-          position: "absolute", // ให้ลอยอยู่ข้างหลังตัวเลข
+          position: "absolute",
           left: 0,
           top: 0,
           height: "100%",
           width: `${percent}%`,
           background: color,
-          transition: "width 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)", // อนิเมชันสมูท
-          
-          // เพิ่มมิติแสงเงาในหลอด (Highlight ด้านบน)
-          boxShadow: "inset 0 4px 0 rgba(255,255,255,0.3), inset 0 -2px 0 rgba(0,0,0,0.1)",
+          transition: "width 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)",
+          boxShadow: "inset 0 2px 0 rgba(255,255,255,0.3)",
         }}
       />
 
-      {/* ส่วนตัวเลข (Text Overlay) */}
+      {/* Text Overlay */}
       <span
         style={{
-          position: "relative", // ให้ลอยอยู่เหนือหลอดสี
-          fontSize: "10px",
+          position: "relative",
+          fontSize: "9px",
           fontWeight: "900",
           color: "#fff",
-          textShadow: "1px 1px 0 #000", // ขอบดำรอบตัวหนังสือ
+          textShadow: "1px 1px 0 #000",
           zIndex: 5,
           lineHeight: 1,
-          fontFamily: "monospace, sans-serif" // ใช้ฟอนต์ที่ดูเป็นตัวเลขเกม
+          fontFamily: "monospace, sans-serif"
         }}
       >
-        {Math.ceil(hp)}/{max}
+        {/* ✅ แก้ตรงนี้: แสดงทศนิยม 1 ตำแหน่ง (ตัด 0 ข้างหลังออกถ้าไม่จำเป็น) */}
+        {parseFloat(hp.toFixed(1))}/{max}
       </span>
     </div>
   );

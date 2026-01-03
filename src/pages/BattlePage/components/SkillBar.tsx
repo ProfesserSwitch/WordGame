@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import type { GameState, DictEntry, PlayerStat, SkillData } from "../types";
 
 // ✅ แก้ Import: ดึงมาจาก GameApp โดยตรง (เพราะเราเอามารวมไว้ที่นั่นแล้ว)
-import { SKILL_DATABASE } from "../../BattlePage/App"; 
+import { SKILL_DATABASE } from "../data/skills"; 
 
 // --- Sub-Component: SkillButton ---
 const SkillButton = ({
@@ -188,17 +188,18 @@ export const SkillBar: React.FC<SkillBarProps> = ({
           </div>
         </div>
         
-        {/* ✅ MP BAR (สีฟ้า) */}
+        {/* MP BAR */}
         <div style={{ position: "relative", width: "100%", height: "6px", background: "#222", borderRadius: "3px", overflow: "hidden", border: "1px solid #444", marginTop: "2px" }}>
            <div style={{ width: `${Math.min(100, (playerStat.mp / (playerStat.max_mp || 1)) * 100)}%`, height: "100%", background: "#2979ff", transition: "width 0.3s" }} />
         </div>
 
-        {/* AP & Shield */}
+        {/* RP & Shield */}
         <div style={{ display: "flex", gap: "5px", marginTop: "4px" }}>
+          {/* ✅ แสดง RP แทน AP */}
           <div style={{ flex: 1, background: "rgba(0,0,0,0.3)", padding: "4px", borderRadius: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
-            <span style={{ fontSize: "10px", color: "#aaa", marginRight: "2px" }}>AP:</span>
-            {Array.from({ length: playerStat.max_ap }).map((_, i) => (
-              <div key={i} style={{ width: "10px", height: "10px", borderRadius: "50%", background: i < playerStat.ap ? "#00e676" : "#555", border: "1px solid #000", boxShadow: i < playerStat.ap ? "0 0 4px #00e676" : "none" }} />
+            <span style={{ fontSize: "10px", color: "#aaa", marginRight: "2px" }}>RP:</span>
+            {Array.from({ length: playerStat.max_rp }).map((_, i) => (
+              <div key={i} style={{ width: "10px", height: "10px", borderRadius: "50%", background: i < playerStat.rp ? "#ffd700" : "#555", border: "1px solid #000", boxShadow: i < playerStat.rp ? "0 0 4px #ffd700" : "none" }} />
             ))}
           </div>
           {playerStat.shield > 0 && (
@@ -220,13 +221,11 @@ export const SkillBar: React.FC<SkillBarProps> = ({
             {SKILL_DATABASE.map((skill: any) => {
               let isDisabled = !isPlayerTurn || targetingMode;
 
-              // เช็ค AP
-              if (playerStat.ap < (skill.apCost || 0)) isDisabled = true;
-              
+              // ❌ ไม่เช็ค AP แล้ว
               // เช็ค MP (ถ้าต้องใช้)
               if ((skill.mpCost || 0) > 0 && playerStat.mp < skill.mpCost) isDisabled = true;
 
-              // ✅ เช็คจำนวนตัวอักษร (เฉพาะสกิลที่ต้องการตัวอักษร > 0)
+              // เช็คจำนวนตัวอักษร
               if ((skill.minWordLength || 0) > 0) {
                 if (!hasWord) isDisabled = true;
                 if (currentWordLength < skill.minWordLength) isDisabled = true;
@@ -234,10 +233,8 @@ export const SkillBar: React.FC<SkillBarProps> = ({
 
               // สร้าง Text แสดง Cost/Gain
               let costText = "";
-              if (skill.apCost > 0) costText += `${skill.apCost} AP`;
-              if (skill.mpCost > 0) costText += `${costText ? ' ' : ''}${skill.mpCost} MP`; // Cost สีขาวปกติ
+              if (skill.mpCost > 0) costText += `${skill.mpCost} MP`; 
               
-              // สร้าง SubLabel (แสดงผล MP Gain ด้วย)
               let subText = skill.description;
               if (skill.mpGain > 0) subText = `(+${skill.mpGain} MP) ${subText}`;
 
@@ -267,10 +264,12 @@ export const SkillBar: React.FC<SkillBarProps> = ({
       <div style={{ padding: "10px", background: "#1a120b", borderTop: "2px solid #5c4033", display: "flex", gap: "8px" }}>
           <div style={{ flex: 1 }}>
             <SkillButton
-                label="SPIN"
+                // ✅ แสดงจำนวนสปินที่เหลือใน Label
+                label={`SPIN (${playerStat.rp})`}
                 color="#fbc02d" 
                 icon="🎲"
-                disabled={!isPlayerTurn || targetingMode}
+                // ✅ ปิดปุ่มถ้า RP หมด หรือไม่ใช่เทิร์นเรา
+                disabled={!isPlayerTurn || targetingMode || playerStat.rp <= 0}
                 onClick={onSpin}
                 height="45px" 
             />

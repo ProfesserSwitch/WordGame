@@ -1,144 +1,159 @@
-export interface Enemy {
-  id: number;
-  x: number;
-  name: string;
-  hp: number;
-  maxHp: number;
-  ac: number; // ✅ เพิ่ม Armor Class
-  atk_power_min: number;
-  atk_power_max: number;
-  pattern: EnemyActionType[]; // เก็บชุดคำสั่ง เช่น ["ATTACK", "WAIT", "ATTACK"]
-  currentStep: number;        // บอกว่าตอนนี้ถึงขั้นตอนไหนแล้ว (0, 1, 2...)
-  level: string;
-  atkFrame: number;
-  shoutText?: string;
-}
-
-// ✅ Action มีแค่ 3 อย่างเหมือนเดิม
-export type EnemyActionType = "ATTACK" | "WAIT" | "SKILL";
-
-// ✅ GameState เพิ่ม QUIZ_MODE
 export type GameState = 
-  | "LOADING" 
   | "ADVANTURE" 
   | "PREPARING_COMBAT" 
   | "PLAYERTURN" 
   | "ENEMYTURN" 
   | "ACTION" 
   | "OVER" 
-  | "QUIZ_MODE"; 
+  | "WAVE_CLEARED" 
+  | "GAME_CLEARED" 
+  | "QUIZ_MODE";
 
+export interface InventoryItem {
+  id: number;
+  char: string;
+  visible: boolean;
+  originalIndex: number;
+}
 
-export interface QuizData {
-  question: string; // คำภาษาไทย
-  choices: string[]; // Choice ภาษาอังกฤษ (4 คำ)
-  correctAnswer: string; // คำตอบที่ถูก
-  enemyId: number; // ID ศัตรูที่ถาม (เพื่อทำ Animation)
+export interface Enemy {
+  id: number;
+  max_hp: number;
+  hp: number;
+  shield: number; 
+  x: number;
+  ac: number;
+  atk_power_min: number;
+  atk_power_max: number;
+  weakness_list?: { alphabet: string; multiplier: number }[];
+  patternList?: any[];
+  selectedPattern?: number;
+  currentStep: number;
+  shoutText?: string;
+  atkFrame: number;
+  [key: string]: any;
+}
+
+export interface Projectile {
+  id: string;
+  x: number;
+  y: number;
+  
+  // ค่าเดิมที่มีอยู่แล้ว
+  targetId?: number;
+  damage: number;
+  isMiss?: boolean;
+  movementType?: "straight" | "curve"; // เดาจากโค้ด Physics
+  startY?: number;
+  phase?: number;
+  visual?: string; // 'FIREBALL' | 'V_SHAPE' ฯลฯ
+
+  // --- ✅ เพิ่ม 3 ตัวนี้ เพื่อให้ PhysicsEngine ส่งค่าได้ และ ProjectileEntity อ่านค่าได้ ---
+  rotation?: number; 
+  scale?: number;
+  char?: string;     
+}
+export interface DamagePopup {
+  id: number;
+  x: number;
+  y: number;
+  value: number;
+  isPlayer?: boolean;
+}
+
+export interface SkillData {
+  id: string;         
+  name: string;
+  icon: string;           
+  description: string;    
+  apCost: number;        
+  mpCost: number;          
+  effectType: "DAMAGE" | "SHIELD" | "HEAL";
+  targetType: "SINGLE" | "MULTI" | "SELF"; 
+  maxTargets: number;
+  basePower: number;
+  hitChanceBonus: number;
+  hitCount?: number;
+  projectileVisual: string;
+  minWordLength: number;
+  isAutoHit?: boolean;
+  damageMin?: number;
+  damageMax?: number;
+}
+
+export interface DictEntry {
+  word: string;
+  meaning: string;
 }
 
 export interface PlayerStat {
   max_hp: number;
   hp: number;
   shield: number;
-  mp: number;    // ✅ เพิ่ม Mana Points
-  max_mp: number; // ✅ เพิ่ม Max Mana Points
   atk: number;
   def: number;
-  // ✅ เพิ่ม Action Points
-  max_ap: number;
-  ap: number;     // Action Points
-  max_bap: number;
-  bap: number;    // Bonus Action Points
+  max_rp: number;
+  rp: number;
+  mp: number;
+  max_mp: number;
+  unlockedSlots: number;
 }
 
-export interface Projectile {
-  id: number;
-  x: number;
-  y: number;
-  startY?: number;
-  phase?: number;
-  damage: number;
-  targetId: number;
-  char: string;
-  
-  // New Props
-  scale?: number;
-  visual?: 'FIREBALL' | 'V_SHAPE' | 'NONE'; // รูปแบบภาพ
-  movementType?: 'straight' | 'wavy';       // รูปแบบการวิ่ง
-  rotation?: number;                        // องศาการหมุน
-  isMiss?: boolean;
+export interface QuizData {
+  question: string;
+  correctAnswer: string;
+  choices: string[];
+  enemyId: number;
 }
 
-export interface InventoryItem {
-  char: string;
-  id: number;
-  visible: boolean;
-  originalIndex: number; // ✅ เพิ่มเพื่อเก็บตำแหน่งเริ่มต้นใน Inventory
-}
-export type DamagePopup = {
-  id: number;
-  x: number;
-  y: number;
-  value: number;
-  isPlayer?: boolean;
-};
+// --- ✅ MAIN STORE INTERFACE ---
 
-export type DictEntry = { 
-  word: string; 
-  type: string; 
-  meaning: string; 
-  level: string;
-};
+export interface GameStateStore {
+  // --- Game Slice State ---
+  gameState: GameState;
+  projectiles: Projectile[];
+  damagePopups: DamagePopup[];
+  dictionary: DictEntry[];
+  distance: number;
+  loadingProgress: number;
+  animResolver: (() => void) | null;
+  stageData: Record<number, Enemy[]> | null;
 
-// export type PlayerStat = {
-//     max_hp: number;
-//     hp: number;
-//     atk: number;
-//     // ใส่ ? ไว้ก่อน เผื่อใน Store ค่าเริ่มต้นยังไม่มีพวกนี้ จะได้ไม่แดงครับ
-//     equipment?: string[];
-//     deck?: Letter[];
-//     bag?: bag[];
-// }; 
+  // --- Player Slice State ---
+  playerStat: PlayerStat;
+  playerShoutText: string;
+  // ✅ แก้ตรงนี้: ยอมรับ null
+  inventory: (InventoryItem | null)[];
 
-export type Letter = {
-  word: string;
-  level: number;
-  ability: string | null;
-  change: number;
-}
+  // --- Enemy Slice State ---
+  currentWave: number;
+  enemies: Enemy[];
+  isDodging: boolean;
+  currentQuiz: QuizData | null;
+  quizResolver: ((isCorrect: boolean) => void) | null;
 
-export type bag = {
-  item: string;
-  count: number;
-}
+  // --- Actions: Game Slice ---
+  initializeGame: () => Promise<void>;
+  notifyAnimationComplete: () => void;
+  waitAnim: (timeout?: number) => Promise<void>;
+  setDictionary: (data: DictEntry[]) => void;
+  addPopup: (p: DamagePopup) => void;
+  removePopup: (id: number) => void;
+  alphabetMissle: (p: Projectile) => void;
+  update: (dt: number) => void;
+  reset: () => void;
 
-// ✅ 1. กำหนดประเภทเป้าหมาย
-export type TargetType = 'SINGLE' | 'MULTI' | 'SELF' | 'ALL';
+  // --- Actions: Player Slice ---
+  damagePlayer: (dmg: number) => void;
+  setInventory: (items: (InventoryItem | null)[]) => void;
+  startPlayerTurn: () => void;
+  actionSpin: (newInventory: (InventoryItem | null)[]) => Promise<void>;
+  castSkill: (skill: SkillData, chosenWord: string, targetIds: number[]) => Promise<void>;
 
-// ✅ 2. กำหนดประเภทเอฟเฟค
-export type EffectType = 'DAMAGE' | 'SHIELD' | 'BUFF' | 'SPIN';
-
-// ✅ 3. กำหนดหน้าตากระสุน
-export type ProjectileVisual = 'FIREBALL' | 'V_SHAPE' | 'NONE'; 
-
-// ✅ 4. โครงสร้างข้อมูลของ Skill (Data Structure)
-export interface SkillData {
-  id: string;
-  name: string;
-  icon: string;
-  description: string;
-  apCost: number;
-  minWordLength: number;
-  targetType: 'SINGLE' | 'MULTI' | 'SELF';
-  maxTargets: number;
-  effectType: 'DAMAGE' | 'HEAL' | 'SHIELD' | 'SPIN'; // etc.
-  basePower: number;
-  hitChanceBonus: number;
-  isAutoHit: boolean;
-  projectileVisual: 'ORB' | 'V_SHAPE' | 'FIREBALL' | 'NONE';
-  mpCost?: number; // ✅ เพิ่มค่าใช้จ่ายมานา (ถ้ามี) 
-  // ✅ เพิ่ม 3 ค่านี้ (ใส่ ? เพื่อให้เป็น Optional เผื่อสกิลเก่าไม่มี)
-  damageMin?: number; 
-  damageMax?: number;
-  hitCount?: number; 
+  // --- Actions: Enemy Slice ---
+  spawnEnemies: (loot: (InventoryItem | null)[]) => void;
+  updateEnemy: (id: number, data: Partial<Enemy>) => void;
+  damageEnemy: (id: number, dmg: number) => void;
+  runEnemyTurn: () => Promise<void>;
+  resolveQuiz: (answer: string) => void;
 }

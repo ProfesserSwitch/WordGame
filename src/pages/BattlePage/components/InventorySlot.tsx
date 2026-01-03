@@ -1,7 +1,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { InventoryItem } from "../types"; // ⚠️ เช็ค path ให้ถูกต้อง
-import { LETTER_DATA } from "../store/constants";    // ⚠️ เช็ค path ให้ถูกต้อง
+import type { InventoryItem } from "../types"; 
+import { LETTER_DATA } from "../store/constants"; 
 
 // ==========================================
 // 1. ส่วนย่อย: Single Slot (Logic ของช่อง 1 ช่อง)
@@ -21,7 +21,7 @@ const SingleSlot: React.FC<SingleSlotProps> = ({ item, index, isLocked, onSelect
         height: "90%",
         background: isLocked ? "#1a0f0a" : "rgba(0, 0, 0, 0.3)",
         border: isLocked ? "2px solid #3d2b1f" : "2px inset #2a1a10",
-        borderRadius: "6px",
+        borderRadius: "4px", // ลด Radius ลงนิดหน่อย
         boxShadow: "inset 1px 1px 4px rgba(0,0,0,0.5)",
         position: "relative",
         display: "flex",
@@ -34,7 +34,7 @@ const SingleSlot: React.FC<SingleSlotProps> = ({ item, index, isLocked, onSelect
       {isLocked && (
         <div
           style={{
-            fontSize: "16px",
+            fontSize: "12px", // ลดขนาดไอคอน
             opacity: 0.3,
             filter: "grayscale(1)",
             userSelect: "none",
@@ -56,21 +56,21 @@ const SingleSlot: React.FC<SingleSlotProps> = ({ item, index, isLocked, onSelect
             whileHover={{ scale: 1.1, zIndex: 100 }}
             onClick={() => onSelect(item, index)}
             style={{
-              width: "90%",
-              height: "90%",
+              width: "92%", // ขยายให้เต็มช่องมากขึ้นเล็กน้อย
+              height: "92%",
               background: "#fdf5e6",
               border: "2px solid #8b4513",
-              borderBottomWidth: "5px",
-              borderRadius: "6px",
+              borderBottomWidth: "4px", // ลดความหนาขอบล่าง
+              borderRadius: "4px",
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
               fontWeight: "900",
-              fontSize: "32px",
+              fontSize: "24px", // ✅ ลดขนาดฟอนต์ (เดิม 32px)
               color: "#3e2723",
               cursor: "pointer",
               userSelect: "none",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+              boxShadow: "0 2px 3px rgba(0,0,0,0.2)",
               position: "absolute",
               top: 0,
               left: 0,
@@ -80,9 +80,9 @@ const SingleSlot: React.FC<SingleSlotProps> = ({ item, index, isLocked, onSelect
             <span
               style={{
                 position: "absolute",
-                bottom: "2px",
-                right: "3px",
-                fontSize: "20px",
+                bottom: "1px",
+                right: "2px",
+                fontSize: "12px", // ✅ ลดขนาดคะแนน (เดิม 20px)
                 color: "#8b4513",
                 fontWeight: "bold",
               }}
@@ -97,12 +97,12 @@ const SingleSlot: React.FC<SingleSlotProps> = ({ item, index, isLocked, onSelect
 };
 
 // ==========================================
-// 2. ส่วนหลัก: Inventory Container (ส่งออกตัวนี้)
+// 2. ส่วนหลัก: Inventory Container
 // ==========================================
 interface InventoryProps {
   inventory: (InventoryItem | null)[];
   onSelectLetter: (item: InventoryItem, index: number) => void;
-  playerSlots?: number; // รับค่าจำนวนช่องที่ปลดล็อค (default = 10)
+  playerSlots?: number;
 }
 
 export const InventorySlot: React.FC<InventoryProps> = ({ 
@@ -114,8 +114,10 @@ export const InventorySlot: React.FC<InventoryProps> = ({
     <div
       id="inventory"
       style={{
-        flex: 2,
-        maxWidth: "600px",
+        boxSizing: "border-box", // สำคัญ: ป้องกัน padding ดันความกว้าง
+        flex: 1.5,           // ✅ ลด Flex ลง (เดิม 2)
+        maxWidth: "380px",   // ✅ ลดความกว้างสูงสุดลง (เดิม 600px)
+        minWidth: "250px",   // กำหนด minWidth กันมันบีบจนเละ
         background: "linear-gradient(180deg, #3d2b1f 0%, #2e2019 100%)",
         borderRadius: "12px",
         border: "3px solid #eebb55",
@@ -123,21 +125,21 @@ export const InventorySlot: React.FC<InventoryProps> = ({
         flexDirection: "column",
         alignItems: "center",
         padding: "8px",
-        boxShadow: "inset 0 0 30px rgba(0,0,0,0.8)",
+        boxShadow: "inset 0 0 20px rgba(0,0,0,0.8)",
       }}
     >
       {/* HEADER */}
       <div
         style={{
           color: "#eebb55",
-          fontSize: "12px",
+          fontSize: "11px",
           fontWeight: 900,
           letterSpacing: "2px",
           borderBottom: "2px solid #eebb55",
-          width: "95%",
+          width: "90%",
           textAlign: "center",
-          paddingBottom: "5px",
-          marginBottom: "5px",
+          paddingBottom: "4px",
+          marginBottom: "4px",
         }}
       >
         INVENTORY
@@ -159,15 +161,16 @@ export const InventorySlot: React.FC<InventoryProps> = ({
             display: "grid",
             gridTemplateColumns: "repeat(5, 1fr)",
             gridTemplateRows: "repeat(4, 1fr)",
-            padding: "10px",
+            gap: "4px", // ✅ เพิ่ม Gap เพื่อให้ดูไม่อึดอัด
+            padding: "6px",
             background: "#3e2723",
-            border: "4px solid #d4af37",
+            border: "3px solid #d4af37", // ลดความหนาขอบ
             borderRadius: "5px",
-            height: "90%",
-            width: "95%",
+            height: "auto",      // ให้สูงตาม content
+            aspectRatio: "5/4",  // บังคับอัตราส่วนให้เป็นสี่เหลี่ยมสวยๆ
+            width: "98%",
           }}
         >
-          {/* Loop สร้างช่องโดยใช้ Component ย่อยข้างบน */}
           {inventory.map((item, index) => (
             <SingleSlot
               key={`slot-${index}`}

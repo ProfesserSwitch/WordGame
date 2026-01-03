@@ -14,23 +14,28 @@ export const ShoutBubble: React.FC<ShoutBubbleProps> = ({ text }) => {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, scale: 0.5 }}
           style={{
-            position: "absolute",
-            zIndex: 1000,
-            top: "-50px", 
+            // position: "absolute",
+            // zIndex: 1000,
+            // top: "-40px", 
+            // left: "50%",
             backgroundColor: "white",
             color: "#333",
             padding: "4px 12px",
             borderRadius: "12px",
-            fontSize: "14px",
+            fontSize: "12px",
             fontWeight: "bold",
             whiteSpace: "nowrap",
             border: "2px solid #000",
             boxShadow: "0 4px 6px rgba(0,0,0,0.3)",
             // จัดกึ่งกลาง (ถ้า Parent มี display:flex, align-items:center แล้ว ตัวนี้จะอยู่กลางเอง แต่ใส่ left/transform เผื่อไว้ได้)
             transform: "translateX(-50%)", 
+            display:'flex',
+            alignItems:'center',
+            justifyContent:'center',
           }}
         >
           {text}
+         
           {/* สามเหลี่ยมชี้ลง */}
           <div
             style={{
@@ -44,7 +49,7 @@ export const ShoutBubble: React.FC<ShoutBubbleProps> = ({ text }) => {
             }}
           />
         </motion.div>
-      )}
+       )} 
     </AnimatePresence>
   );
 };
