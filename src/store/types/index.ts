@@ -37,3 +37,36 @@ export interface MonsterType {
   cooldown: number;
   description: string;
 }
+
+export interface Dictionary {
+  word: string;
+  type: string;
+  meaning: string;
+  level: string;
+}
+
+export interface DictionaryFilterRequest {
+  startsWith?: string;
+  contains?: string;
+  length?: number;
+  level?: string | null;
+  limit?: number;
+  lastWord?: string | null;
+  append?: boolean; //เพิ่ม
+}
+
+export interface DictionaryWord {
+  word: string;
+  type: string;
+  meaning: string;
+  level: string;
+  length: number;
+}
+
+export interface DictionaryResponse {
+  isSuccess: boolean;
+  count: number;
+  hasNext: boolean;
+  data: DictionaryWord[];
+  lastWord: string | null ;
+}

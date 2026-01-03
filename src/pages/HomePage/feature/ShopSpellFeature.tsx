@@ -1,4 +1,5 @@
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -15,6 +16,9 @@ import { motion } from "framer-motion";
 import { SearchComponent } from "../components/SearchComponent";
 import { useData } from "../hook/useData";
 import { Title } from "./AdvantureFeature";
+import BackArrow from "../components/BackArrow";
+import { useLoadData } from "../../AuthPage/LoginPage/hook/useLoadData";
+import { Loading } from "../../../components/Loading/Loading";
 type SpellCardProps = {
   name: string;
   price: number;
@@ -210,8 +214,8 @@ const DetailItems = ({
 
 const ShopSpellFeature = () => {
   const { item, loading, searchItems, resetItems } = useData();
-
-  const MotionBox = motion(Box);
+  const { fetchAllShop } = useLoadData();
+  const navigate = useNavigate();
 
   const [openDetail, setOpenDetail] = useState(false);
   const [inputValue, setInputValue] = useState("");
@@ -233,14 +237,35 @@ const ShopSpellFeature = () => {
     setSearchValue(inputValue);
   };
 
+  useEffect(() => {
+    fetchAllShop();
+  }, [fetchAllShop]);
 
+  // loading
+  if (loading === "LOADING") {
+    return (
+      <Box
+        sx={{
+          width: "100vw",
+          height: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#ffffff",
+        }}
+      >
+        <Loading />
+      </Box>
+    );
+  }
 
   return (
-    <>
+    <Box sx={{ mt: 2 }}>
+      <BackArrow onClick={() => navigate("/")} />
       <Box
         sx={{
           position: "fixed",
-          top: "60%",
+          top: "55%",
           left: "50%",
           transform: "translate(-50%, -50%)",
           paddingTop: 6, // เผื่อหัว
@@ -251,8 +276,8 @@ const ShopSpellFeature = () => {
     0 0 20px rgba(180,40,40,0.5),
     0 20px 40px rgba(0,0,0,0.8)
   `,
-          width: { xs: "90%", sm: "80%", md: "80%", lg: "70%" },
-          height: "480px",
+          width: { xs: "90%", sm: "80%", md: "80%", lg: "80%" },
+          height: "550px",
           padding: 2,
         }}
       >
@@ -290,7 +315,7 @@ const ShopSpellFeature = () => {
       {selectedItem && (
         <DetailItems open={openDetail} onClose={() => setOpenDetail(false)} />
       )}
-    </>
+    </Box>
   );
 };
 
