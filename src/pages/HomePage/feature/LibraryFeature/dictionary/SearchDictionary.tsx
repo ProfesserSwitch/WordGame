@@ -3,23 +3,32 @@ import SearchIcon from "@mui/icons-material/Search";
 
 type SearchProps = {
   value?: string;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSearchChange: () => void;
   letter: string;
+  setSearchInput: React.Dispatch<React.SetStateAction<string>>;
+  setSearchText: React.Dispatch<React.SetStateAction<string>>;
 };
 
 export const SearchDictionary = ({
   value,
-  onChange,
+  setSearchInput,
   handleSearchChange,
   letter,
+  setSearchText,
 }: SearchProps) => {
   return (
     <Box sx={{ mb: 1 }}>
       <TextField
         fullWidth
         value={value}
-        onChange={onChange}
+        onChange={(e) => {
+          const v = e.target.value.toLowerCase();
+          setSearchInput(v);
+          
+          if (v.trim() === "") {
+            setSearchText("");
+          }
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter" && handleSearchChange()) {
             handleSearchChange();
@@ -60,7 +69,7 @@ export const SearchDictionary = ({
           "& input::placeholder": {
             color: "#c9b89a",
             fontSize: 9,
-            pl:1,
+            pl: 1,
             opacity: 1,
           },
           "& fieldset": {

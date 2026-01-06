@@ -39,10 +39,9 @@ export interface DictionaryState {
   hasNext: boolean;
   lastWord: string | null;
   words: DictionaryWord[];
-  dictionary: DictionaryWord[];
+
 }
 const initialState: DictionaryState = {
-  dictionary: [],
   // loading: INITIALIZED,
   // error: null,
 
@@ -62,9 +61,6 @@ const dictionarySlice = createSlice({
       state.count = 0;
       state.hasNext = false;
     },
-    clearSearch(state) {
-      state.words = state.dictionary;
-    },
   },
   extraReducers: (builder) => {
     builder.addCase(fetchDictionary.pending, (state) => {
@@ -76,9 +72,9 @@ const dictionarySlice = createSlice({
       state.count = action.payload.count;
       state.hasNext = action.payload.hasNext;
       state.lastWord = action.payload.lastWord;
-      state.dictionary = action.payload.data; // clone data ตอน search
+     
       if (action.meta.arg.append) {
-        state.words.push(...action.payload.data); // ⭐ สำคัญ
+        state.words.push(...action.payload.data); 
       } else {
         state.words = action.payload.data;
       }
@@ -89,5 +85,5 @@ const dictionarySlice = createSlice({
     });
   },
 });
-export const { clearDictionary, clearSearch } = dictionarySlice.actions;
+export const { clearDictionary, } = dictionarySlice.actions;
 export default dictionarySlice.reducer;

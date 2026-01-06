@@ -6,14 +6,14 @@ import { useAppDispatch } from "../../../../../hook/auth";
 import {
   fetchDictionary,
   clearDictionary,
-  clearSearch,
 } from "../../../../../store/reducers/dictionary";
 import { SearchDictionary } from "./SearchDictionary";
 import { useData } from "../../../hook/useData";
-import { useLoadData } from "../../../../AuthPage/LoginPage/hook/useLoadData";
-import { SearchComponent } from "../../../components/SearchComponent";
+import { useLoginPlayer } from "../../../../AuthPage/LoginPage/hook/useLoginPlayer";
+import { SelectComponent } from "../../../components/SelectComponent";
 import type { DictionaryWord } from "../../../../../store/types";
 import BackArrow from "../../../components/BackArrow";
+
 const ALPHABETS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 const shortType = (type?: string) => {
@@ -70,7 +70,10 @@ const WordList = ({
     <Box
       onScroll={handleScroll}
       sx={{
-        // width: "40%",
+         width: { xs: "60%",sm:"50%", md: "50%" },
+        height: "100%",
+        border: "3px solid #2b1d14",
+        boxShadow: "inset 0 0 0 2px #e7dcc8, 4px 4px 0 #2b1d14",
         background: `
   repeating-linear-gradient(
     180deg,
@@ -80,8 +83,8 @@ const WordList = ({
     #f3e9d8 56px
   )
 `,
-        height: "90%",
         overflowY: "auto",
+        backgroundAttachment: "local",
       }}
     >
       {dictionary?.length === 0 && (
@@ -290,6 +293,7 @@ const WordDetail = ({ dictionary }: { dictionary: DictionaryWord | null }) => {
 const DictionaryLibrary = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const { currentUser } = useLoginPlayer();
   const { dictionary, DictionaryState, hasNext, lastWord } = useData();
 
   const [selectedLetter, setSelectedLetter] = useState("A");
@@ -297,6 +301,8 @@ const DictionaryLibrary = () => {
 
   const [searchInput, setSearchInput] = useState(""); // สิ่งที่พิมพ์
   const [searchText, setSearchText] = useState(""); // สิ่งที่ใช้ค้นจริง
+
+  const [selectLevel, setSelectLevel] = useState("");
 
   const handleSearchChange = () => {
     if (searchInput === searchText) return;
@@ -315,12 +321,15 @@ const DictionaryLibrary = () => {
     );
   }, [selectedLetter, searchText]);
 
-  console.log("no",dictionary)
   useEffect(() => {
     if (searchInput.trim() === "") {
-      dispatch(clearSearch());
-      console.log("ทำงานจริงหรือหลอกกัน อย่าหลอกกันเข้าสิ")
-      console.log("trim",dictionary)
+      dispatch(
+        fetchDictionary({
+          startsWith: selectedLetter,
+          limit: 50,
+          append: false,
+        })
+      );
     } else {
       dispatch(
         fetchDictionary({
@@ -438,6 +447,29 @@ const DictionaryLibrary = () => {
           {/*  content */}
           <Box
             sx={{
+              display: "flex",
+              width: "100%",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Box sx={{ width: { xs: "62%",sm:"51%", md: "51%" } }}>
+              <SearchDictionary
+                value={searchInput}
+                setSearchInput={setSearchInput}
+                setSearchText={setSearchText}
+                handleSearchChange={handleSearchChange}
+                letter={selectedLetter.toLowerCase()}
+              />
+            </Box>
+            <Box sx={{ display: "flex", gap: 1, }}>
+              <SelectComponent />
+              <SelectComponent />
+              <SelectComponent />
+            </Box>
+          </Box>
+          <Box
+            sx={{
               flex: 1,
               display: "flex",
               gap: 1,
@@ -445,11 +477,11 @@ const DictionaryLibrary = () => {
               height: "500px",
             }}
           >
-            <Box
+            {/* <Box
               sx={{
                 display: "flex",
                 flexDirection: "column",
-                width: { xs: "50%", mb: "40%" },
+                width: { xs: "60%", mb: "70%" },
               }}
             >
               <Box
@@ -462,12 +494,6 @@ const DictionaryLibrary = () => {
                   boxShadow: "inset 0 0 0 2px #e7dcc8, 4px 4px 0 #2b1d14",
                 }}
               >
-                <SearchDictionary
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value.toLowerCase())}
-                  handleSearchChange={handleSearchChange}
-                  letter={selectedLetter.toLowerCase()}
-                />
                 <WordList
                   dictionary={dictionary}
                   hasNext={hasNext}
@@ -475,10 +501,21 @@ const DictionaryLibrary = () => {
                   onLoadMore={loadMore}
                   onSelect={setSelectedWord}
                   selectedWord={selectedWord}
+
                   // searchInput={searchInput}
                 />
               </Box>
-            </Box>
+            </Box> */}
+            <WordList
+              dictionary={dictionary}
+              hasNext={hasNext}
+              loading={DictionaryState === "LOADING"}
+              onLoadMore={loadMore}
+              onSelect={setSelectedWord}
+              selectedWord={selectedWord}
+              // roleAdmin={currentUser?.role}
+              // searchInput={searchInput}
+            />
 
             <WordDetail dictionary={selectedWord} />
           </Box>
