@@ -48,7 +48,7 @@ export const HomeLobbyLayout = () => {
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <Button
         variant="contained"
-        onClick={() => navigate("/adventure")}
+        onClick={() => navigate("/home/adventure")}
         sx={{
           fontFamily: "'Press Start 2P'",
           fontSize: 16,
@@ -65,7 +65,7 @@ export const HomeLobbyLayout = () => {
       </Button>
       <Button
         variant="contained"
-        onClick={() => navigate("/shop")}
+        onClick={() => navigate("/home/shop")}
         sx={{
           fontFamily: "'Press Start 2P'",
           fontSize: 16,
@@ -82,7 +82,7 @@ export const HomeLobbyLayout = () => {
       </Button>
       <Button
         variant="contained"
-        onClick={() => navigate("/library")}
+        onClick={() => navigate("/home/library")}
         sx={{
           fontFamily: "'Press Start 2P'",
           fontSize: 16,

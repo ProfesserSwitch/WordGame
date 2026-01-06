@@ -208,7 +208,7 @@ const AdvantureFeature = () => {
 
   return (
     <Box sx={{m:2}}>
-      <BackArrow onClick={() => navigate("/")} />
+      <BackArrow onClick={() => navigate("/home")} />
       <MotionBox
         initial={
           //   {

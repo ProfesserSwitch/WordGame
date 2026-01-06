@@ -261,7 +261,7 @@ const ShopSpellFeature = () => {
 
   return (
     <Box sx={{ mt: 2 }}>
-      <BackArrow onClick={() => navigate("/")} />
+      <BackArrow onClick={() => navigate("/home")} />
       <Box
         sx={{
           position: "fixed",

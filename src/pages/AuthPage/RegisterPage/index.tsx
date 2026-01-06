@@ -135,7 +135,7 @@ const RegisterPage = () => {
     );
 
     // clearForm();
-    // navigate("/");
+    navigate("/auth/login");
   };
 
   // error for network reject and when regis pass

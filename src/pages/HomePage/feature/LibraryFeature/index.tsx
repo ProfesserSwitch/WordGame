@@ -81,7 +81,7 @@ const LibraryFeature = () => {
   //   const;
   return (
     <Box sx={{ m: 2 }}>
-      <BackArrow onClick={() => navigate("/")} />
+      <BackArrow onClick={() => navigate("/home")} />
       <MotionBox
         initial={false}
         animate={{
@@ -139,7 +139,7 @@ const LibraryFeature = () => {
               sx={libraryCardStyle}
             >
               <CardActionArea
-                onClick={() => navigate("/library/monster")}
+                onClick={() => navigate("/home/library/monster")}
                 sx={{
                   display: "flex",
                   justifyContent: "center",
@@ -188,7 +188,7 @@ const LibraryFeature = () => {
               sx={libraryCardStyle}
             >
               <CardActionArea
-                onClick={() => navigate("/library/dictionary")}
+                onClick={() => navigate("/home/library/dictionary")}
                 sx={{
                   display: "flex",
                   justifyContent: "center",
