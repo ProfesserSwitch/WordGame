@@ -6,9 +6,10 @@ export interface UserRegister {
   createdat?: string;
 }
 
+export type Role = "admin" | "player";
 export interface UserLogin {
   username: string;
-  password: string;
+  role: Role
 }
 
 export interface StageType {
