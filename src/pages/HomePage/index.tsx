@@ -10,9 +10,11 @@ import MagicCursor from "../../components/Cursor";
 import { AnimatePresence } from "framer-motion";
 import { motion } from "framer-motion";
 import background2 from "../../assets/icons/background2.png";
+import { useLoginPlayer } from "../AuthPage/LoginPage/hook/useLoginPlayer";
 const HomePage = () => {
   // const { loading, fetchAllData } = useLoadData();
-
+  const {currentUser} = useLoginPlayer();
+  console.log(currentUser);
   // useEffect(() => {
   //   fetchAllData();
   // }, [fetchAllData]);
@@ -38,7 +40,7 @@ const HomePage = () => {
    <>
    <MagicCursor/>
     <Box sx={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
-      <GameAppBar />
+      <GameAppBar username={currentUser?.username}/>
       {/* <LeftFeatureBar/> */}
 
       {/* 🌌 Sky */}

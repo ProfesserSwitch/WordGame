@@ -10,9 +10,11 @@ import { useCallback } from "react";
 export const useLoginPlayer = () => {
   const dispatch = useAppDispatch();
 
+  const currentUser = useAppSelector((state)=> state.auth.currentUser);
   const message = useAppSelector((state) => state.auth.backendLoginMessage);
   const state = useAppSelector((state)=> state.auth.loginState);
   const error = useAppSelector((state)=> state.auth.errorLogin)
+
 
   //state 
   const isLoading = state === LOADING;
@@ -36,6 +38,7 @@ export const useLoginPlayer = () => {
   },[dispatch])
 
   return {
+    currentUser,
     message,
     error,
     

@@ -65,7 +65,10 @@ const tabStyle = {
   },
 };
 
-const GameAppBar = () => {
+type AppBarProps = {
+  username: string | undefined;
+}
+const GameAppBar = ({username}:AppBarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -330,7 +333,7 @@ const GameAppBar = () => {
                   whiteSpace: "nowrap",
                 }}
               >
-                Punchii
+                {username}
               </Typography>
             </Box>
 
